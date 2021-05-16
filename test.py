@@ -138,66 +138,78 @@ left: {session.query(User).filter_by(id=i.user_id).first().train_amount} \
         er.grid(row=5, column=0, padx=5, pady=5)
         print("exc is " + str(E))
 def show_payments():
-    try:
         col=0
         row=1
         for i in search_payments():
-            e = tk.Label(frame_pay_all, text=f"{session.query(User).filter_by(id=i.user_id).first().name} $: {i.money} at {i.action_time.strftime('%Y-%m-%d %H:%M:%S')} coach: {session.query(Coach).filter_by(id=i.coach_id).first().name}", relief=tk.GROOVE)
-            e.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
-            col += 1
-            if col % 1 == 0:
-                row+=1
-                col=0
-    except:
-        er = tk.Label(frame_pay_all, text="Nothing")
-        er.grid(row=5, column=0, padx=5, pady=5)
+            try:
+                e = tk.Label(frame_pay_all, text=f"{session.query(User).filter_by(id=i.user_id).first().name} $: {i.money} at {i.action_time.strftime('%Y-%m-%d %H:%M:%S')} coach: {session.query(Coach).filter_by(id=i.coach_id).first().name}", relief=tk.GROOVE)
+                e.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
+                col += 1
+                if col % 1 == 0:
+                    row+=1
+                    col=0
+            except:
+                er = tk.Label(frame_pay_all, text="Nothing")
+                er.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
+                col += 1
+                if col % 1 == 0:
+                    row+=1
+                    col=0
 def show_schedules():
-    try:
         col=0
         row=1
         for i in search_schedule():
-            e = tk.Label(frame_sched_all, text=f"{i.name}, start: {i.start_time}, end: {i.end_time}, Amount: {i.train_amount}, id: {i.id}", relief=tk.GROOVE)
-            e.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
-            col += 1
-            if col % 1 == 0:
-                row+=1
-                col=0
+            try:
+                e = tk.Label(frame_sched_all, text=f"{i.name}, start: {i.start_time}, end: {i.end_time}, Amount: {i.train_amount}, id: {i.id}", relief=tk.GROOVE)
+                e.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
+                col += 1
+                if col % 1 == 0:
+                    row+=1
+                    col=0
+            except:
+                er = tk.Label(frame_sched_all, text="Nothing")
+                er.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
+                col += 1
+                if col % 1 == 0:
+                    row+=1
+                    col=0
         lbl_del_c = tk.Label(frame_sched_all, text="Input id to delete")
         lbl_del_c.grid(row=997, column=0, padx=5, pady=5)
         del_entry = tk.Entry(frame_sched_all, bg="white")
         del_entry.grid(row=998, column=0, padx=5, pady=5)
         del_coach = tk.Button(frame_sched_all, text="Delete", command=lambda: [delete_sch(del_entry.get()), clear_frame_sch(), show_schedules()], width=10)
         del_coach.grid(row=999, column=0, padx=5, pady=5)
-    except:
-        er = tk.Label(frame_sched_all, text="Nothing")
-        er.grid(row=5, column=0, padx=5, pady=5)
 def show_coaches(): #показать тренеров
-    try:
         col=0
         row=1
         for i in search_coach():
-            e = tk.Label(frame_bottom, text=f"{i.name} id: {i.id}", relief=tk.GROOVE)
-            e.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
-            col += 1
-            if col % 3 == 0:
-                row+=1
-                col=0
+            try:
+                e = tk.Label(frame_bottom, text=f"{i.name} id: {i.id}", relief=tk.GROOVE)
+                e.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
+                col += 1
+                if col % 3 == 0:
+                    row+=1
+                    col=0
+            except:
+                er = tk.Label(frame_bottom, text="Nothing")
+                er.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
+                col += 1
+                if col % 3 == 0:
+                    row+=1
+                    col=0
         lbl_del_c = tk.Label(frame_bottom, text="Input id to delete")
         lbl_del_c.grid(row=999, column=0, padx=5, pady=5)
         del_entry = tk.Entry(frame_bottom, bg="white")
         del_entry.grid(row=999, column=1, padx=5, pady=5)
         del_coach = tk.Button(frame_bottom, text="Delete", command=lambda: [delete_coach(del_entry.get()), clear_frame_coaches(), show_coaches()], width=10)
         del_coach.grid(row=999, column=2, padx=5, pady=5)
-    except:
-        er = tk.Label(frame_bottom, text="Nothing")
-        er.grid(row=5, column=0, padx=5, pady=5)
 def show_users(): #показать пользователей
     lbl = tk.Label(frame_users_all, text="Users", font=("Arial"))
     lbl.grid(column=0, row=0)
-    try:
-        col=0
-        row=1
-        for i in session.query(User).all():
+    col=0
+    row=1
+    for i in session.query(User).all():
+        try:
             e = tk.Label(frame_users_all, text=f"""{i.name}
     id: {i.id}\n RFID: {i.RFID}\n phone: {i.tel}
     schedule: {session.query(Schedule).filter_by(id=i.schedule_id).first().name}
@@ -209,23 +221,29 @@ def show_users(): #показать пользователей
             if col % 3 == 0:
                 row+=1
                 col=0
+        except Exception as E:
+            er = tk.Label(frame_users_all, text="Nothing")
+            er.grid(row=row, column=col, padx=5, pady=5, sticky=tk.NSEW)
+            col += 1
+            if col % 3 == 0:
+                row+=1
+                col=0
+            print("show_users ex "+str(E))
         lbl_del = tk.Label(frame_users_all, text="Input id to delete")
         lbl_del.grid(row=997, column=0)
         del_entry = tk.Entry(frame_users_all, bg="white")
         del_entry.grid(row=998, column=0, padx=5, pady=5)
         del_usr = tk.Button(frame_users_all, text="Delete", command=lambda: [delete_user(del_entry.get()), clear_frame_users(), show_users()], width=10)
         del_usr.grid(row=999, column=0, padx=5, pady=5)
-    except Exception as E:
-        er = tk.Label(frame_users_all, text="Nothing")
-        er.grid(row=5, column=0, padx=5, pady=5)
-        print("show_users ex "+str(E))
 def search_show():
+    def searching():
+        cb_search(susers_cb.get(), ef_search.get())
     def cb_search(searchby, val):
         col=0
         row=1
         if searchby == "by name":
             for i in session.query(User).all():
-                if val in i.name:
+                if val.lower() in i.name.lower():
                     e = tk.Label(searchwin, text=f"""{i.name}
 id: {i.id}\n RFID: {i.RFID}\n phone: {i.tel}
 schedule: {session.query(Schedule).filter_by(id=i.schedule_id).first().name}
@@ -263,8 +281,9 @@ register {i.registered_on}""", relief=tk.GROOVE)
                 del_entry.grid(row=998, column=0, padx=5, pady=5)
                 del_usr = tk.Button(searchwin, text="Delete", command=lambda: [delete_user(del_entry.get()), clear_frame_users(), show_users()], width=10)
                 del_usr.grid(row=999, column=0, padx=5, pady=5)
-    def searching():
-        cb_search(susers_cb.get(), ef_search.get())
+        if searchby == "Search by...":
+            dang = tk.Label(searchwin, text="Please choose filter")
+            dang.grid(row=row, column=col, padx=5, pady=5, sticky=tk.NSEW)
     searchwin = tk.Tk()
     searchwin.geometry('450x450+350+350')
     searchwin.title("Search window")
@@ -279,6 +298,25 @@ register {i.registered_on}""", relief=tk.GROOVE)
     susers_btn = tk.Button(searchwin, text="search", command=searching)
     susers_btn.grid(column=2, row=0)
     susers_btn.config(width=10, fg='#009688', borderwidth=2, relief=tk.RAISED)
+
+    canv_fr_search_users = tk.Frame(searchwin)
+    canv_fr_search_users.place(relx=0, rely=0.10, relwidth=0.9, relheight=0.85)
+    #canv_fr_pay.pack(fill=tk.BOTH, expand=1)
+    #create a canvas
+    canv_search_users = tk.Canvas(canv_fr_search_users, bg='grey')
+    canv_search_users.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
+    #add a scrollbar to canvas
+    scroll_coach = ttk.Scrollbar(canv_fr_search_users, orient=tk.VERTICAL, command=canv_search_users.yview)
+    scroll_coach.pack(side=tk.RIGHT, fill=tk.Y)
+    #config the canvas
+    canv_search_users.configure(yscrollcommand=scroll_coach.set)
+    canv_search_users.bind_all("<MouseWheel>", fp(_on_mouse_wheel, canv_search_users))
+    canv_search_users.bind('<Configure>', lambda e: canv_search_users.configure(scrollregion = canv_search_users.bbox("all")))
+    #create another frame inside the canvas
+    searchwin = tk.Frame(canv_search_users, bg='grey')
+    #add that new frame to a window in the canvas
+    canv_search_users.create_window((0,0), window=searchwin, anchor="nw")
+    
     searchwin.mainloop()
 
 win = tk.Tk()
@@ -468,7 +506,7 @@ scroll_act.pack(side=tk.RIGHT, fill=tk.Y)
 #config the canvas
 canv_act.configure(yscrollcommand=scroll_act.set)
 canv_act.bind("<MouseWheel>", fp(_on_mouse_wheel, canv_act))    
-canv_act.bind('<Configure>', lambda e: canv_act.configure(scrollregion = canv_act.bbox(all)))
+canv_act.bind('<Configure>', lambda e: canv_act.configure(scrollregion = canv_act.bbox("all")))
 #create another frame inside the canvas
 frame_act = tk.Frame(canv_act, bg='grey')
 #add that new frame to a window in the canvas
@@ -536,6 +574,7 @@ canv_coach.bind('<Configure>', lambda e: canv_coach.configure(scrollregion = can
 frame_bottom = tk.Frame(canv_coach, bg='grey')
 #add that new frame to a window in the canvas
 canv_coach.create_window((0,0), window=frame_bottom, anchor="nw")
+
 
 lbl = tk.Label(frame_bottom, text="Coaches", font=("Arial"))
 lbl.grid(column=1, row=0)
