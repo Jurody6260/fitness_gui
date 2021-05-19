@@ -4,7 +4,17 @@ from models import *
 import functools
 fp=functools.partial
 lbl_width = 15
-def import_to_excel():
+def show_cl_sch():
+    global opt_user_sch
+    try:
+        opt_user_sch = ttk.Combobox(frame_users, value=[str(_.name) for _ in session.query(Schedule.name)], width=lbl_width+12)
+        opt_user_sch.current(0)
+        opt_user_sch.grid(column=1, row=4)
+    except:
+        opt_user_sch = ttk.Combobox(frame_users, value=["please add schedule"], width=lbl_width+12)
+        opt_user_sch.current(0)
+        opt_user_sch.grid(column=1, row=4)
+def export_to_excel():
     writer = pd.ExcelWriter('test.xlsx')
     action_table = pd.read_sql_table('action', engine)
     payment_table = pd.read_sql_table('payment', engine)
@@ -37,25 +47,25 @@ def set_time(text):
     ef_sch_et.delete(0,tk.END)
     ef_sch_et.insert(0,text)
 def create_user(name, RFID, tel, schedule_id, start_d, end_d, train_amount, lvl):
-    if name !='' and tel != '' and isinstance(schedule_id, int):
+    if name !='' and tel != '' and schedule_id != '' and len(session.query(User).filter_by(RFID=RFID).all()) == 0:
         usr = User(
             name=name, 
             RFID=RFID, 
             tel=tel, 
-            schedule_id=schedule_id, 
+            schedule_id=session.query(Schedule).filter_by(name=schedule_id).first().id, 
             start_date=start_d, 
             end_date=end_d, 
             train_amount=train_amount, 
             user_level=lvl,
             registered_on=date.today()
             )
-        if len(session.query(User).all()) > 0:
-            show_users()
         session.add(usr)
         session.commit()
+        if len(session.query(User).all()) > 0:
+            show_users()
 def create_action(user_id, isentr, session):
     try:
-        if isinstance(user_id, int) and isentr != '':
+        if user_id != '' and isentr != '':
             if session.query(User).filter_by(id=user_id).first().user_level == '':
                 session.query(User).filter_by(id=user_id).first().user_level = 0
             if (int(session.query(User).filter_by(id=user_id).first().user_level) > 0) or (isentr==False):
@@ -138,74 +148,84 @@ left: {session.query(User).filter_by(id=i.user_id).first().train_amount} \
         er.grid(row=5, column=0, padx=5, pady=5)
         print("exc is " + str(E))
 def show_payments():
-        col=0
-        row=1
-        for i in search_payments():
-            try:
-                e = tk.Label(frame_pay_all, text=f"{session.query(User).filter_by(id=i.user_id).first().name} $: {i.money} at {i.action_time.strftime('%Y-%m-%d %H:%M:%S')} coach: {session.query(Coach).filter_by(id=i.coach_id).first().name}", relief=tk.GROOVE)
-                e.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
-                col += 1
-                if col % 1 == 0:
-                    row+=1
-                    col=0
-            except:
-                er = tk.Label(frame_pay_all, text="Nothing")
-                er.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
-                col += 1
-                if col % 1 == 0:
-                    row+=1
-                    col=0
+    col=0
+    row=1
+    for i in search_payments():
+        try:
+            e = tk.Label(frame_pay_all, text=f"{session.query(User).filter_by(id=i.user_id).first().name} $: {i.money} at {i.action_time.strftime('%Y-%m-%d %H:%M:%S')} coach: {session.query(Coach).filter_by(id=i.coach_id).first().name}", relief=tk.GROOVE)
+            e.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
+            col += 1
+            if col % 1 == 0:
+                row+=1
+                col=0
+        except:
+            er = tk.Label(frame_pay_all, text="Nothing")
+            er.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
+            col += 1
+            if col % 1 == 0:
+                row+=1
+                col=0
 def show_schedules():
-        col=0
-        row=1
-        for i in search_schedule():
-            try:
-                e = tk.Label(frame_sched_all, text=f"{i.name}, start: {i.start_time}, end: {i.end_time}, Amount: {i.train_amount}, id: {i.id}", relief=tk.GROOVE)
-                e.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
-                col += 1
-                if col % 1 == 0:
-                    row+=1
-                    col=0
-            except:
-                er = tk.Label(frame_sched_all, text="Nothing")
-                er.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
-                col += 1
-                if col % 1 == 0:
-                    row+=1
-                    col=0
-        lbl_del_c = tk.Label(frame_sched_all, text="Input id to delete")
-        lbl_del_c.grid(row=997, column=0, padx=5, pady=5)
-        del_entry = tk.Entry(frame_sched_all, bg="white")
-        del_entry.grid(row=998, column=0, padx=5, pady=5)
-        del_coach = tk.Button(frame_sched_all, text="Delete", command=lambda: [delete_sch(del_entry.get()), clear_frame_sch(), show_schedules()], width=10)
-        del_coach.grid(row=999, column=0, padx=5, pady=5)
+    show_cl_sch()
+    col=0
+    row=1
+    for i in search_schedule():
+        try:
+            e = tk.Label(frame_sched_all, text=f"{i.name}, start: {i.start_time}, end: {i.end_time}, Amount: {i.train_amount}, id: {i.id}", relief=tk.GROOVE)
+            e.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
+            col += 1
+            if col % 1 == 0:
+                row+=1
+                col=0
+        except:
+            er = tk.Label(frame_sched_all, text="Nothing")
+            er.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
+            col += 1
+            if col % 1 == 0:
+                row+=1
+                col=0
+    lbl_del_c = tk.Label(frame_sched_all, text="Input id to delete")
+    lbl_del_c.grid(row=997, column=0, padx=5, pady=5)
+    del_entry = tk.Entry(frame_sched_all, bg="white")
+    del_entry.grid(row=998, column=0, padx=5, pady=5)
+    del_coach = tk.Button(frame_sched_all, text="Delete", command=lambda: [delete_sch(del_entry.get()), clear_frame_sch(), show_schedules()], width=10)
+    del_coach.grid(row=999, column=0, padx=5, pady=5)
 def show_coaches(): #показать тренеров
-        col=0
-        row=1
-        for i in search_coach():
-            try:
-                e = tk.Label(frame_bottom, text=f"{i.name} id: {i.id}", relief=tk.GROOVE)
-                e.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
-                col += 1
-                if col % 3 == 0:
-                    row+=1
-                    col=0
-            except:
-                er = tk.Label(frame_bottom, text="Nothing")
-                er.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
-                col += 1
-                if col % 3 == 0:
-                    row+=1
-                    col=0
-        lbl_del_c = tk.Label(frame_bottom, text="Input id to delete")
-        lbl_del_c.grid(row=999, column=0, padx=5, pady=5)
-        del_entry = tk.Entry(frame_bottom, bg="white")
-        del_entry.grid(row=999, column=1, padx=5, pady=5)
-        del_coach = tk.Button(frame_bottom, text="Delete", command=lambda: [delete_coach(del_entry.get()), clear_frame_coaches(), show_coaches()], width=10)
-        del_coach.grid(row=999, column=2, padx=5, pady=5)
+    col=0
+    row=1
+    for i in search_coach():
+        try:
+            e = tk.Label(frame_bottom, text=f"{i.name} id: {i.id}", relief=tk.GROOVE)
+            e.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
+            col += 1
+            if col % 3 == 0:
+                row+=1
+                col=0
+        except:
+            er = tk.Label(frame_bottom, text="Nothing")
+            er.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
+            col += 1
+            if col % 3 == 0:
+                row+=1
+                col=0
+    lbl_del_c = tk.Label(frame_bottom, text="Input id to delete")
+    lbl_del_c.grid(row=999, column=0, padx=5, pady=5)
+    del_entry = tk.Entry(frame_bottom, bg="white")
+    del_entry.grid(row=999, column=1, padx=5, pady=5)
+    del_coach = tk.Button(frame_bottom, text="Delete", command=lambda: [delete_coach(del_entry.get()), clear_frame_coaches(), show_coaches()], width=10)
+    del_coach.grid(row=999, column=2, padx=5, pady=5)
+def edit_user():
+    editwin = tk.Tk()
+    editwin.geometry('450x450+350+350')
+    editwin.title("Edit User window")
+    editwin.configure(background="grey")
+    
 def show_users(): #показать пользователей
     lbl = tk.Label(frame_users_all, text="Users", font=("Arial"))
     lbl.grid(column=0, row=0)
+    search_btn = tk.Button(frame_users_all, text="search", command=search_show)
+    search_btn.grid(column=2, row=0)
+    search_btn.config(width=10, fg='#009688', borderwidth=2, relief=tk.RAISED)
     col=0
     row=1
     for i in session.query(User).all():
@@ -217,9 +237,11 @@ def show_users(): #показать пользователей
     train amount: {i.train_amount} 
     register {i.registered_on}""", relief=tk.GROOVE)
             e.grid(row=row, column=col, padx=5, pady=5, sticky=tk.NSEW)
+            btn = tk.Button(frame_users_all, text="Edit", command=edit_user)
+            btn.grid(row=row+1, column=col, padx=5, pady=5, sticky=tk.NSEW)
             col += 1
             if col % 3 == 0:
-                row+=1
+                row+=2
                 col=0
         except Exception as E:
             er = tk.Label(frame_users_all, text="Nothing")
@@ -373,14 +395,7 @@ sch_user = tk.Label(frame_users, text="Schedule ID", width=lbl_width)
 sch_user.grid(column=0,row=4)
 ef_user_sch = tk.StringVar(frame_users)
 ef_user_sch.set("1")
-try:
-    opt_user_sch = ttk.Combobox(frame_users, value=[str(_.id) for _ in session.query(Schedule.id)], width=lbl_width+12)
-    opt_user_sch.current(0)
-    opt_user_sch.grid(column=1, row=4)
-except:
-    opt_user_sch = ttk.Combobox(frame_users, value=["please add schedule"], width=lbl_width+12)
-    opt_user_sch.current(0)
-    opt_user_sch.grid(column=1, row=4)
+
 
 sd_user = tk.Label(frame_users, text="Start Date", width=lbl_width)
 sd_user.grid(column=0,row=5)
@@ -489,7 +504,7 @@ tab6 = ttk.Frame(tab_parent)
 tab_parent.add(tab6, text="Settings")
 settings_fr = tk.Frame(tab6)
 settings_fr.place(relx=0.15, rely=0.015, relwidth=0.7, relheight=0.3)
-imp_btn = tk.Button(settings_fr, text="Import data", command=import_to_excel)
+imp_btn = tk.Button(settings_fr, text="Export data", command=export_to_excel)
 imp_btn.grid(column=1, row=1)
 imp_btn.config(width=10, fg='#000000', borderwidth=2, relief=tk.RAISED)
 imp_btn.configure(highlightbackground='#006400')
@@ -554,11 +569,9 @@ canv_user.create_window((0,0), window=frame_users_all, anchor="nw")
 lbl = tk.Label(frame_users_all, text="Users", font=("Arial"))
 lbl.grid(column=0, row=0)
 
-search_btn = tk.Button(frame_users_all, text="search", command=search_show)
-search_btn.grid(column=2, row=0)
-search_btn.config(width=10, fg='#009688', borderwidth=2, relief=tk.RAISED)
+
 canv_fr_coach = tk.Frame(tab1)
-canv_fr_coach.place(relx=0.15, rely=0.30, relwidth=0.7, relheight=0.7)
+canv_fr_coach.place(relx=0.15, rely=0.30, relwidth=0.8, relheight=0.7)
 #canv_fr_pay.pack(fill=tk.BOTH, expand=1)
 #create a canvas
 canv_coach = tk.Canvas(canv_fr_coach, bg='grey')
@@ -582,7 +595,14 @@ lbl.grid(column=1, row=0)
 
 tab_parent.pack(expand=1, fill='both')
 
-
+try:
+    opt_user_sch = ttk.Combobox(frame_users, value=[str(_.id) for _ in session.query(Schedule.id)], width=lbl_width+12)
+    opt_user_sch.current(0)
+    opt_user_sch.grid(column=1, row=4)
+except:
+    opt_user_sch = ttk.Combobox(frame_users, value=["please add schedule"], width=lbl_width+12)
+    opt_user_sch.current(0)
+    opt_user_sch.grid(column=1, row=4)
 #scrollY = tk.Scrollbar(frame_act, orient=tk.VERTICAL, command=lbl.yview)
 #scrollY.grid(row=0, column=1, sticky=tk.N+tk.S)
 clear_frame_sch
@@ -594,20 +614,20 @@ set_date(date.today())
 set_time(time().strftime("%H:%M"))
 show_schedules()
 show_payments()
-
+show_cl_sch()
 
 comPorts = []
-serialPorts = ['COM3']#, 'COM25','/dev/ttyACM0','/dev/ttyACM1','/dev/ttyACM2','/dev/ttyACM3','/dev/ttyUSB0','/dev/ttyUSB1','/dev/ttyUSB2','/dev/ttyUSB3']
-for port in serialPorts:
-    try:
-        arduino_port = serial.Serial(port, baudrate=9600,
-                                    parity=serial.PARITY_NONE,
-                                    stopbits=serial.STOPBITS_ONE,
-                                    bytesize=serial.EIGHTBITS,
-                                    timeout=0.04)
-        comPorts.append(arduino_port)
-    except Exception as E:
-        print(str(E))
+# serialPorts = ['COM3']#, 'COM25','/dev/ttyACM0','/dev/ttyACM1','/dev/ttyACM2','/dev/ttyACM3','/dev/ttyUSB0','/dev/ttyUSB1','/dev/ttyUSB2','/dev/ttyUSB3']
+# for port in serialPorts:
+#     try:
+#         arduino_port = serial.Serial(port, baudrate=9600,
+#                                     parity=serial.PARITY_NONE,
+#                                     stopbits=serial.STOPBITS_ONE,
+#                                     bytesize=serial.EIGHTBITS,
+#                                     timeout=0.04)
+#         comPorts.append(arduino_port)
+#     except Exception as E:
+#         print(str(E))
 
 def serialThread1():
     global running
@@ -680,8 +700,8 @@ def serialThread(comPorts, session):
             #      print("abort:" + str(comPorts.pop(portIndex)))
             #      reboot()
             print("Serial thread:" + str(ex))
-thread = threading.Thread(target=serialThread1)
-thread.start()
+# thread = threading.Thread(target=serialThread1)
+# thread.start()
 def on_closing():
     session.close()
     global running
@@ -691,6 +711,6 @@ def on_closing():
 show_users()
 win.protocol("WM_DELETE_WINDOW", on_closing)
 win.mainloop()
-thread.join()
+# thread.join()
 
 

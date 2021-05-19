@@ -51,7 +51,7 @@ def add_RFID(id,RFID):
     session.commit()
 
 def create_schedule(name,start_time,end_time,train_amount):
-    if name != '' and len(start_time.split(":")) == 2 and len(end_time.split(":") and isinstance(train_amount, int)):
+    if name != '' and len(start_time.split(":")) == 2 and len(end_time.split(":")) == 2 and train_amount != '':
         sch = Schedule(name=name, start_time=start_time,end_time=end_time,train_amount=train_amount)
         session.add(sch)
         session.commit()
@@ -59,7 +59,7 @@ def create_schedule(name,start_time,end_time,train_amount):
 
 
 def create_payment(user_id,money,coach_id):
-    if isinstance(user_id, int) and isinstance(money, int) and isinstance(coach_id, int):
+    if user_id != '' and money != '' and coach_id != '':
         pay = Payment(user_id=user_id, money=money, coach_id=coach_id, action_time=datetime.now())
         session.add(pay)
         session.commit()
