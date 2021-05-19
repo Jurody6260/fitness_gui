@@ -34,7 +34,8 @@ def clear_frame_users():
       widgets.destroy()
 def clear_frame_sch():
    for widgets in frame_sched_all.winfo_children():
-      widgets.destroy()    
+      widgets.destroy()   
+
 def set_date(text):
     ef_user_sd.delete(0,tk.END)
     ef_user_sd.insert(0,text)
@@ -59,6 +60,21 @@ def create_user(name, RFID, tel, schedule_id, start_d, end_d, train_amount, lvl)
             user_level=lvl,
             registered_on=date.today()
             )
+        session.add(usr)
+        session.commit()
+        if len(session.query(User).all()) > 0:
+            show_users()
+def ed_user_db(name, RFID, tel, schedule_id, start_d, end_d, train_amount, lvl, id):
+    if name !='' and tel != '' and schedule_id != '':
+        usr=session.query(User).filter_by(id=id).first()
+        usr.name = name
+        usr.RFID = RFID
+        usr.tel = tel
+        usr.schedule_id = session.query(Schedule).filter_by(name=schedule_id).first().id
+        usr.start_date = start_d
+        usr.end_date = end_d
+        usr.train_amount = train_amount
+        usr.user_level = lvl
         session.add(usr)
         session.commit()
         if len(session.query(User).all()) > 0:
@@ -127,7 +143,7 @@ def show_actions(session):
         else:
             return "Deny"
     clear_frame_actions()
-    lbl = tk.Label(frame_act, text="Actions", font=("Arial"))
+    lbl = tk.Label(frame_act, text="Actions", font=("Arial"), borderwidth=0)
     lbl.grid(column=0, row=0)
     col=0
     row=1
@@ -137,14 +153,14 @@ def show_actions(session):
 at {i.action_time.strftime('%Y-%m-%d %H:%M:%S')} \
 {inout(i.is_entry)} \
 left: {session.query(User).filter_by(id=i.user_id).first().train_amount} \
-{isallowed(i.allowed)}", relief=tk.GROOVE)
+{isallowed(i.allowed)}", relief=tk.GROOVE, borderwidth=0)
             e.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
             col += 1
             if col % 1 == 0:
                 row+=1
                 col=0
     except Exception as E:
-        er = tk.Label(frame_act, text="Nothing")
+        er = tk.Label(frame_act, text="Nothing", borderwidth=0)
         er.grid(row=5, column=0, padx=5, pady=5)
         print("exc is " + str(E))
 def show_payments():
@@ -152,14 +168,14 @@ def show_payments():
     row=1
     for i in search_payments():
         try:
-            e = tk.Label(frame_pay_all, text=f"{session.query(User).filter_by(id=i.user_id).first().name} $: {i.money} at {i.action_time.strftime('%Y-%m-%d %H:%M:%S')} coach: {session.query(Coach).filter_by(id=i.coach_id).first().name}", relief=tk.GROOVE)
+            e = tk.Label(frame_pay_all, text=f"{session.query(User).filter_by(id=i.user_id).first().name} $: {i.money} at {i.action_time.strftime('%Y-%m-%d %H:%M:%S')} coach: {session.query(Coach).filter_by(id=i.coach_id).first().name}", borderwidth=0, relief=tk.GROOVE)
             e.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
             col += 1
             if col % 1 == 0:
                 row+=1
                 col=0
         except:
-            er = tk.Label(frame_pay_all, text="Nothing")
+            er = tk.Label(frame_pay_all, text="Nothing", borderwidth=0)
             er.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
             col += 1
             if col % 1 == 0:
@@ -171,20 +187,20 @@ def show_schedules():
     row=1
     for i in search_schedule():
         try:
-            e = tk.Label(frame_sched_all, text=f"{i.name}, start: {i.start_time}, end: {i.end_time}, Amount: {i.train_amount}, id: {i.id}", relief=tk.GROOVE)
+            e = tk.Label(frame_sched_all, text=f"{i.name}, start: {i.start_time}, end: {i.end_time}, Amount: {i.train_amount}, id: {i.id}", borderwidth=0, relief=tk.GROOVE)
             e.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
             col += 1
             if col % 1 == 0:
                 row+=1
                 col=0
         except:
-            er = tk.Label(frame_sched_all, text="Nothing")
+            er = tk.Label(frame_sched_all, text="Nothing", borderwidth=0)
             er.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
             col += 1
             if col % 1 == 0:
                 row+=1
                 col=0
-    lbl_del_c = tk.Label(frame_sched_all, text="Input id to delete")
+    lbl_del_c = tk.Label(frame_sched_all, text="Input id to delete", borderwidth=0)
     lbl_del_c.grid(row=997, column=0, padx=5, pady=5)
     del_entry = tk.Entry(frame_sched_all, bg="white")
     del_entry.grid(row=998, column=0, padx=5, pady=5)
@@ -195,36 +211,107 @@ def show_coaches(): #показать тренеров
     row=1
     for i in search_coach():
         try:
-            e = tk.Label(frame_bottom, text=f"{i.name} id: {i.id}", relief=tk.GROOVE)
+            e = tk.Label(frame_bottom, text=f"{i.name} id: {i.id}", borderwidth=0, relief=tk.GROOVE)
             e.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
             col += 1
             if col % 3 == 0:
                 row+=1
                 col=0
         except:
-            er = tk.Label(frame_bottom, text="Nothing")
+            er = tk.Label(frame_bottom, text="Nothing", borderwidth=0)
             er.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
             col += 1
             if col % 3 == 0:
                 row+=1
                 col=0
-    lbl_del_c = tk.Label(frame_bottom, text="Input id to delete")
+    lbl_del_c = tk.Label(frame_bottom, text="Input id to delete", borderwidth=0)
     lbl_del_c.grid(row=999, column=0, padx=5, pady=5)
     del_entry = tk.Entry(frame_bottom, bg="white")
     del_entry.grid(row=999, column=1, padx=5, pady=5)
     del_coach = tk.Button(frame_bottom, text="Delete", command=lambda: [delete_coach(del_entry.get()), clear_frame_coaches(), show_coaches()], width=10)
     del_coach.grid(row=999, column=2, padx=5, pady=5)
 def edit_user():
+    def search_and_input(id):
+        name_user = tk.Label(editwin, text="Name", width=lbl_width, borderwidth=0)
+        name_user.grid(column=0,row=1)
+        
+        entry_field_users = tk.Entry(editwin, bg='white', font=30)
+        entry_field_users.grid(column=1, row=1)
+        entry_field_users.insert(0, session.query(User).filter_by(id=id).first().name)
+        rfid_user = tk.Label(editwin, text="RFID", width=lbl_width, borderwidth=0)
+        rfid_user.grid(column=0,row=2)
+        ef_user_rfid = tk.Entry(editwin, bg='white', font=30)
+        ef_user_rfid.grid(column=1, row=2)
+        ef_user_rfid.insert(0, session.query(User).filter_by(id=id).first().RFID)
+        tel_user = tk.Label(editwin, text="Phone Number", width=lbl_width, borderwidth=0)
+        tel_user.grid(column=0,row=3)
+        ef_user_tel = tk.Entry(editwin, bg='white', font=30)
+        ef_user_tel.grid(column=1, row=3)
+        ef_user_tel.insert(0, session.query(User).filter_by(id=id).first().tel)
+        sch_user = tk.Label(editwin, text="Schedule ID", width=lbl_width, borderwidth=0)
+        sch_user.grid(column=0,row=4)
+        opt_user_sch = ttk.Combobox(editwin, value=[str(_.name) for _ in session.query(Schedule.name)], width=lbl_width+12)
+        opt_user_sch.current(0)
+        opt_user_sch.grid(column=1, row=4)
+        sd_user = tk.Label(editwin, text="Start Date", width=lbl_width, borderwidth=0)
+        sd_user.grid(column=0,row=5)
+        ef_user_sd = tk.Entry(editwin, bg='white', font=30)
+        ef_user_sd.grid(column=1, row=5)
+        ef_user_sd.insert(0, session.query(User).filter_by(id=id).first().start_date)
+        ed_user = tk.Label(editwin, text="End Date", width=lbl_width, borderwidth=0)
+        ed_user.grid(column=0,row=6)
+        ef_user_ed = tk.Entry(editwin, bg='white', font=30)
+        ef_user_ed.grid(column=1, row=6)
+        ef_user_ed.insert(0, session.query(User).filter_by(id=id).first().end_date)
+        ta_user = tk.Label(editwin, text="Train Amount", width=lbl_width, borderwidth=0)
+        ta_user.grid(column=0,row=7)
+        ef_user_ta = tk.Entry(editwin, bg='white', font=30)
+        ef_user_ta.grid(column=1, row=7)
+        ef_user_ta.insert(0, session.query(User).filter_by(id=id).first().train_amount)
+        lvl_user = tk.Label(editwin, text="Level (def=0)", width=lbl_width, borderwidth=0)
+        lvl_user.grid(column=0,row=8)
+        ef_user_lvl = tk.Entry(editwin, bg='white', font=30)
+        ef_user_lvl.grid(column=1, row=8)
+        ef_user_lvl.insert(0, session.query(User).filter_by(id=id).first().user_level)
+        Button = tk.Button(editwin, text="edit", 
+        command=lambda: [ed_user_db(entry_field_users.get(), 
+                        ef_user_rfid.get(), 
+                        ef_user_tel.get(), 
+                        opt_user_sch.get(), 
+                        ef_user_sd.get(), 
+                        ef_user_ed.get(), 
+                        ef_user_ta.get(), 
+                        ef_user_lvl.get(),
+                        id=id),
+                        clear_frame_users(),
+                        show_users(),
+                        ])
+        Button.grid(column=1, row=10)
+        Button.config(width=10, fg='#009688', borderwidth=2, relief=tk.RAISED)
+        Button.configure(highlightbackground='#009688')
     editwin = tk.Tk()
     editwin.geometry('450x450+350+350')
     editwin.title("Edit User window")
     editwin.configure(background="grey")
+    ed_ef = tk.Entry(editwin, bg='white', font=30)
+    ed_ef.insert(0, 'enter id')
+    ed_ef.bind("<FocusIn>", lambda args: ed_ef.delete('0', 'end'))
+    ed_ef.grid(column=0, row=0)
+    ed_btn = tk.Button(editwin, text="edit", command=lambda: [search_and_input(ed_ef.get())])
+    ed_btn.grid(column=1, row=0)
+    ed_btn.config(width=10, fg='#009688', borderwidth=2, relief=tk.RAISED)
+    ed_btn.configure(highlightbackground='#009688')
+    
+    
     
 def show_users(): #показать пользователей
-    lbl = tk.Label(frame_users_all, text="Users", font=("Arial"))
+    lbl = tk.Label(frame_users_all, text="Users", font=("Arial"), borderwidth=0)
     lbl.grid(column=0, row=0)
+    btn = tk.Button(frame_users_all, text="Edit", command=edit_user)
+    btn.grid(row=0, column=1, padx=5, pady=5)
+    btn.config(width=10, fg='#009688', borderwidth=2, relief=tk.RAISED)
     search_btn = tk.Button(frame_users_all, text="search", command=search_show)
-    search_btn.grid(column=2, row=0)
+    search_btn.grid(column=2, row=0, padx=5, pady=5)
     search_btn.config(width=10, fg='#009688', borderwidth=2, relief=tk.RAISED)
     col=0
     row=1
@@ -235,32 +322,34 @@ def show_users(): #показать пользователей
     schedule: {session.query(Schedule).filter_by(id=i.schedule_id).first().name}
     start: {i.start_date}\n end: {i.end_date} 
     train amount: {i.train_amount} 
-    register {i.registered_on}""", relief=tk.GROOVE)
+    register {i.registered_on}""", borderwidth=0, relief=tk.GROOVE)
             e.grid(row=row, column=col, padx=5, pady=5, sticky=tk.NSEW)
-            btn = tk.Button(frame_users_all, text="Edit", command=edit_user)
-            btn.grid(row=row+1, column=col, padx=5, pady=5, sticky=tk.NSEW)
             col += 1
             if col % 3 == 0:
                 row+=2
                 col=0
         except Exception as E:
-            er = tk.Label(frame_users_all, text="Nothing")
+            er = tk.Label(frame_users_all, text="Nothing", borderwidth=0)
             er.grid(row=row, column=col, padx=5, pady=5, sticky=tk.NSEW)
             col += 1
             if col % 3 == 0:
                 row+=1
                 col=0
             print("show_users ex "+str(E))
-        lbl_del = tk.Label(frame_users_all, text="Input id to delete")
+        lbl_del = tk.Label(frame_users_all, text="Input id to delete", borderwidth=0)
         lbl_del.grid(row=997, column=0)
         del_entry = tk.Entry(frame_users_all, bg="white")
         del_entry.grid(row=998, column=0, padx=5, pady=5)
         del_usr = tk.Button(frame_users_all, text="Delete", command=lambda: [delete_user(del_entry.get()), clear_frame_users(), show_users()], width=10)
         del_usr.grid(row=999, column=0, padx=5, pady=5)
 def search_show():
+    def clear_frame_searc_user():
+        for widgets in searchwin.winfo_children():
+            widgets.destroy()
     def searching():
         cb_search(susers_cb.get(), ef_search.get())
     def cb_search(searchby, val):
+        clear_frame_searc_user()
         col=0
         row=1
         if searchby == "by name":
@@ -271,13 +360,13 @@ id: {i.id}\n RFID: {i.RFID}\n phone: {i.tel}
 schedule: {session.query(Schedule).filter_by(id=i.schedule_id).first().name}
 start: {i.start_date}\n end: {i.end_date} 
 train amount: {i.train_amount} 
-register {i.registered_on}""", relief=tk.GROOVE)
+register {i.registered_on}""", borderwidth=0, relief=tk.GROOVE)
                     e.grid(row=row, column=col, padx=5, pady=5, sticky=tk.NSEW)
                     col += 1
                     if col % 3 == 0:
                         row+=1
                         col=0
-                lbl_del = tk.Label(searchwin, text="Input id to delete")
+                lbl_del = tk.Label(searchwin, text="Input id to delete", borderwidth=0)
                 lbl_del.grid(row=997, column=0)
                 del_entry = tk.Entry(searchwin, bg="white")
                 del_entry.grid(row=998, column=0, padx=5, pady=5)
@@ -291,25 +380,27 @@ id: {i.id}\n RFID: {i.RFID}\n phone: {i.tel}
 schedule: {session.query(Schedule).filter_by(id=i.schedule_id).first().name}
 start: {i.start_date}\n end: {i.end_date} 
 train amount: {i.train_amount} 
-register {i.registered_on}""", relief=tk.GROOVE)
+register {i.registered_on}""", borderwidth=0, relief=tk.GROOVE)
                     e.grid(row=row, column=col, padx=5, pady=5, sticky=tk.NSEW)
                     col += 1
                     if col % 3 == 0:
                         row+=1
                         col=0
-                lbl_del = tk.Label(searchwin, text="Input id to delete")
+                lbl_del = tk.Label(searchwin, text="Input id to delete", borderwidth=0)
                 lbl_del.grid(row=997, column=0)
                 del_entry = tk.Entry(searchwin, bg="white")
                 del_entry.grid(row=998, column=0, padx=5, pady=5)
                 del_usr = tk.Button(searchwin, text="Delete", command=lambda: [delete_user(del_entry.get()), clear_frame_users(), show_users()], width=10)
                 del_usr.grid(row=999, column=0, padx=5, pady=5)
         if searchby == "Search by...":
-            dang = tk.Label(searchwin, text="Please choose filter")
+            dang = tk.Label(searchwin, text="Please choose filter", borderwidth=0)
             dang.grid(row=row, column=col, padx=5, pady=5, sticky=tk.NSEW)
-    searchwin = tk.Tk()
-    searchwin.geometry('450x450+350+350')
-    searchwin.title("Search window")
-    searchwin.configure(background="grey")
+    root = tk.Tk()
+    root.geometry('450x450+350+350')
+    root.title("Search window")
+    root.configure(background="grey")
+    searchwin = tk.Frame(root)
+    searchwin.pack(fill="both", expand=True)
     ef_search = tk.Entry(searchwin, font=("Arial"))
     ef_search.insert(0, 'search')
     ef_search.bind("<FocusIn>", lambda args: ef_search.delete('0', 'end'))
@@ -355,7 +446,7 @@ tab_parent.add(tab1, text="add Coach")
 frame_top = tk.Frame(tab1, bg='#ffb700', bd=5)
 frame_top.place(relx=0.15, rely=0.015, relwidth=0.8, relheight=0.2)
 
-lbl = tk.Label(frame_top, text="add Coach", font=("Arial"))
+lbl = tk.Label(frame_top, text="add Coach", font=("Arial"), borderwidth=0)
 lbl.grid(column=1, row=0)
 
 Button = tk.Button(frame_top, text="add", command=lambda: [create_coach(entry_field.get()), show_coaches()])
@@ -372,47 +463,45 @@ tab_parent.add(tab2, text="add User")
 frame_users = tk.Frame(tab2, bg='orange', bd=5)
 frame_users.place(relx=0.15, rely=0.015, relwidth=0.8, relheight=0.35)
 
-lbl = tk.Label(frame_users, text="add User", font=("Arial"))
+lbl = tk.Label(frame_users, text="add User", font=("Arial"), borderwidth=0)
 lbl.grid(column=1, row=0)
 
 
-name_user = tk.Label(frame_users, text="Name", width=lbl_width)
+name_user = tk.Label(frame_users, text="Name", width=lbl_width, borderwidth=0)
 name_user.grid(column=0,row=1)
 entry_field_users = tk.Entry(frame_users, bg='white', font=30)
 entry_field_users.grid(column=1, row=1)
 
-rfid_user = tk.Label(frame_users, text="RFID", width=lbl_width)
+rfid_user = tk.Label(frame_users, text="RFID", width=lbl_width, borderwidth=0)
 rfid_user.grid(column=0,row=2)
 ef_user_rfid = tk.Entry(frame_users, bg='white', font=30)
 ef_user_rfid.grid(column=1, row=2)
 
-tel_user = tk.Label(frame_users, text="Phone Number", width=lbl_width)
+tel_user = tk.Label(frame_users, text="Phone Number", width=lbl_width, borderwidth=0)
 tel_user.grid(column=0,row=3)
 ef_user_tel = tk.Entry(frame_users, bg='white', font=30)
 ef_user_tel.grid(column=1, row=3)
 
-sch_user = tk.Label(frame_users, text="Schedule ID", width=lbl_width)
+sch_user = tk.Label(frame_users, text="Schedule ID", width=lbl_width, borderwidth=0)
 sch_user.grid(column=0,row=4)
-ef_user_sch = tk.StringVar(frame_users)
-ef_user_sch.set("1")
 
 
-sd_user = tk.Label(frame_users, text="Start Date", width=lbl_width)
+sd_user = tk.Label(frame_users, text="Start Date", width=lbl_width, borderwidth=0)
 sd_user.grid(column=0,row=5)
 ef_user_sd = tk.Entry(frame_users, bg='white', font=30)
 ef_user_sd.grid(column=1, row=5)
 
-ed_user = tk.Label(frame_users, text="End Date", width=lbl_width)
+ed_user = tk.Label(frame_users, text="End Date", width=lbl_width, borderwidth=0)
 ed_user.grid(column=0,row=6)
 ef_user_ed = tk.Entry(frame_users, bg='white', font=30)
 ef_user_ed.grid(column=1, row=6)
 
-ta_user = tk.Label(frame_users, text="Train Amount", width=lbl_width)
+ta_user = tk.Label(frame_users, text="Train Amount", width=lbl_width, borderwidth=0)
 ta_user.grid(column=0,row=7)
 ef_user_ta = tk.Entry(frame_users, bg='white', font=30)
 ef_user_ta.grid(column=1, row=7)
 
-lvl_user = tk.Label(frame_users, text="Level (def=0)", width=lbl_width)
+lvl_user = tk.Label(frame_users, text="Level (def=0)", width=lbl_width, borderwidth=0)
 lvl_user.grid(column=0,row=8)
 ef_user_lvl = tk.Entry(frame_users, bg='white', font=30)
 ef_user_lvl.grid(column=1, row=8)
@@ -439,27 +528,27 @@ frame_sched.place(relx=0.15, rely=0.015, relwidth=0.8, relheight=0.2)
 frame_sched_all = tk.Frame(tab3, bg='grey', bd=5)
 frame_sched_all.place(relx=0.15, rely=0.24, relwidth=0.8, relheight=0.75)
 
-lbl = tk.Label(frame_sched, text="add Schedule *24h-format", font=("Arial"))
+lbl = tk.Label(frame_sched, text="add Schedule *24h-format", font=("Arial"), borderwidth=0)
 lbl.grid(column=1, row=0)
-lbl = tk.Label(frame_sched_all, text="Schedules", font=("Arial"))
+lbl = tk.Label(frame_sched_all, text="Schedules", font=("Arial"), borderwidth=0)
 lbl.grid(column=0, row=0)
 
-name_sch = tk.Label(frame_sched, text="Name", width=lbl_width)
+name_sch = tk.Label(frame_sched, text="Name", width=lbl_width, borderwidth=0)
 name_sch.grid(column=0,row=1)
 ef_sch = tk.Entry(frame_sched, bg='white', font=30)
 ef_sch.grid(column=1, row=1)
 
-st_sch = tk.Label(frame_sched, text="Start Time", width=lbl_width)
+st_sch = tk.Label(frame_sched, text="Start Time", width=lbl_width, borderwidth=0)
 st_sch.grid(column=0,row=2)
 ef_sch_st = tk.Entry(frame_sched, bg='white', font=30)
 ef_sch_st.grid(column=1, row=2)
 
-et_sch = tk.Label(frame_sched, text="End Time", width=lbl_width)
+et_sch = tk.Label(frame_sched, text="End Time", width=lbl_width, borderwidth=0)
 et_sch.grid(column=0,row=3)
 ef_sch_et = tk.Entry(frame_sched, bg='white', font=30)
 ef_sch_et.grid(column=1, row=3)
 
-ta_sch = tk.Label(frame_sched, text="Train Amount", width=lbl_width)
+ta_sch = tk.Label(frame_sched, text="Train Amount", width=lbl_width, borderwidth=0)
 ta_sch.grid(column=0,row=4)
 ef_sch_ta = tk.Entry(frame_sched, bg='white', font=30)
 ef_sch_ta.grid(column=1, row=4)
@@ -474,21 +563,21 @@ tab_parent.add(tab4, text="add Payment")
 frame_pay = tk.Frame(tab4, bg='orange', bd=5)
 frame_pay.place(relx=0.15, rely=0.015, relwidth=0.7, relheight=0.3)
 
-lbl = tk.Label(frame_pay, text="add Payment", font=("Arial"))
+lbl = tk.Label(frame_pay, text="add Payment", font=("Arial"), borderwidth=0)
 lbl.grid(column=1, row=0)
 
 
-id_pay = tk.Label(frame_pay, text="User ID", width=lbl_width)
+id_pay = tk.Label(frame_pay, text="User ID", width=lbl_width, borderwidth=0)
 id_pay.grid(column=0,row=1)
 ef_pay = tk.Entry(frame_pay, bg='white', font=30)
 ef_pay.grid(column=1, row=1)
 
-money_pay = tk.Label(frame_pay, text="Amount of Money", width=lbl_width)
+money_pay = tk.Label(frame_pay, text="Amount of Money", width=lbl_width, borderwidth=0)
 money_pay.grid(column=0,row=2)
 ef_moneypay = tk.Entry(frame_pay, bg='white', font=30)
 ef_moneypay.grid(column=1, row=2)
 
-coach_pay = tk.Label(frame_pay, text="Coach ID", width=lbl_width)
+coach_pay = tk.Label(frame_pay, text="Coach ID", width=lbl_width, borderwidth=0)
 coach_pay.grid(column=0,row=3)
 ef_coachpay = tk.Entry(frame_pay, bg='white', font=30)
 ef_coachpay.grid(column=1, row=3)
@@ -544,7 +633,7 @@ canv_pay.bind('<Configure>', lambda e: canv_pay.configure(scrollregion = canv_pa
 frame_pay_all = tk.Frame(canv_pay, bg='grey')
 #add that new frame to a window in the canvas
 canv_pay.create_window((0,0), window=frame_pay_all, anchor="nw")
-lbl = tk.Label(frame_pay_all, text="Payments", font=("Arial"))
+lbl = tk.Label(frame_pay_all, text="Payments", font=("Arial"), borderwidth=0)
 lbl.grid(column=0, row=0)
 
 
@@ -566,7 +655,7 @@ frame_users_all = tk.Frame(canv_user, bg='grey')
 #add that new frame to a window in the canvas
 canv_user.create_window((0,0), window=frame_users_all, anchor="nw")
 
-lbl = tk.Label(frame_users_all, text="Users", font=("Arial"))
+lbl = tk.Label(frame_users_all, text="Users", font=("Arial"), borderwidth=0)
 lbl.grid(column=0, row=0)
 
 
@@ -589,7 +678,7 @@ frame_bottom = tk.Frame(canv_coach, bg='grey')
 canv_coach.create_window((0,0), window=frame_bottom, anchor="nw")
 
 
-lbl = tk.Label(frame_bottom, text="Coaches", font=("Arial"))
+lbl = tk.Label(frame_bottom, text="Coaches", font=("Arial"), borderwidth=0)
 lbl.grid(column=1, row=0)
 
 
