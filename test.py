@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 from models import *
-
+import calendar
 import functools
 fp=functools.partial
 lbl_width = 15
@@ -19,23 +19,32 @@ def show_cl_sch():
         opt_user_sch = ttk.Combobox(frame_users, value=["please add schedule"], width=lbl_width+12)
         opt_user_sch.current(0)
         opt_user_sch.grid(column=1, row=4)
-def export_to_excel(fname):
+def export_to_excel(fname, year, month):
     if fname != '':
+        year, month = int(year), int(month)
         try:
+            num_days = calendar.monthrange(year, month)[1]
+            start_date = date(year, month, 1)
+            end_date = date(year, month, num_days)
+            action_results = session.query(User).filter(User.id==1).name
+            #action_results = session.query(Action).filter(and_(Action.action_time >= start_date, Action.action_time <= end_date)).all()
+            payment_results = session.query(Payment).filter(
+and_(Payment.action_time >= start_date, Payment.action_time <= end_date)).all()
             writer = pd.ExcelWriter(fname + '.xlsx')
             action_table = pd.read_sql_table('action', engine, columns=["action_time", "is_entry", "allowed", "user_id"])
             payment_table = pd.read_sql_table('payment', engine, columns=["money","action_time", "coach_id", "user_id"])
             user_table = pd.read_sql_table('user', engine, columns=["id", "name"])
             df = pd.merge(user_table, action_table, left_on="id", right_on="user_id", how="right")
             df1 = pd.merge(user_table, payment_table, left_on="id", right_on="user_id", how="right")
+            df2 = pd.read_sql(action_results, engine)
             with writer:
                 df.to_excel(writer, sheet_name="Merged action", index=False)
                 df1.to_excel(writer, sheet_name="Merged payment", index=False)
-                action_table.to_excel(writer, sheet_name="Actions", index=False)
+                df2.to_excel(writer, sheet_name="Actions", index=False)
                 payment_table.to_excel(writer, sheet_name="Payments", index=False)
                 user_table.to_excel(writer, sheet_name="Users name", index=False)
         except Exception as e:
-            print("excel export err:" + e)
+            "excel export err:" + e
 def _on_mouse_wheel(canv, event):
     canv.yview_scroll(-1 * int((event.delta / 120)), "units")
 def clear_frame_coaches():
@@ -624,15 +633,27 @@ settings_fr.place(relx=0.15, rely=0.015, relwidth=0.7, relheight=0.3)
 lbl = tk.Label(settings_fr, text="EXPORT DATA", font=("Arial"), borderwidth=0)
 lbl.grid(column=1, row=0)
 
-
 name_exc_file = tk.Label(settings_fr, text="FILE NAME", width=lbl_width, borderwidth=0)
 name_exc_file.grid(column=0,row=1)
 e_f_exc_file = tk.Entry(settings_fr, bg='white', font=30)
 e_f_exc_file.grid(column=1, row=1)
 
-imp_btn = tk.Button(settings_fr, text="Export data", command=lambda: [export_to_excel(e_f_exc_file.get())])
-imp_btn.grid(column=1, row=2)
-imp_btn.config(width=10, bg="#000000", fg="#FFFFFF", borderwidth=2, relief=tk.RAISED)
+year_lbl = tk.Label(settings_fr, text="PLACE YEAR", width=lbl_width, borderwidth=0)
+year_lbl.grid(column=0,row=2)
+e_f_year_lbl = tk.Entry(settings_fr, bg='white', font=30)
+e_f_year_lbl.grid(column=1, row=2)
+e_f_year_lbl.insert(0, datetime.now().strftime("%Y"))
+month_lbl = tk.Label(settings_fr, text="MONTH", width=lbl_width, borderwidth=0)
+month_lbl.grid(column=0,row=3)
+e_f_month = tk.Entry(settings_fr, bg='white', font=30)
+e_f_month.grid(column=1, row=3)
+e_f_month.insert(0, datetime.now().strftime("%m"))
+
+
+imp_btn = tk.Button(settings_fr, text="Export data", command=lambda: [export_to_excel(e_f_exc_file.get(),
+e_f_year_lbl.get(), e_f_month.get() )])
+imp_btn.grid(column=1, row=15)
+imp_btn.config(width=10, padx=5, pady=5, bg="#000000", fg="#FFFFFF", borderwidth=2, relief=tk.RAISED)
 imp_btn.configure(highlightbackground='#006400')
 
 
@@ -642,6 +663,8 @@ reload_btn = tk.Button(settings_fr, text="clear all", command=drop_create_db)
 reload_btn.grid(column=0, row=999, padx=5, pady=5)
 reload_btn.config(width=10, bg="#df4759", fg="#FFFFFF", borderwidth=2, relief=tk.RAISED)
 reload_btn.configure(highlightbackground='#006400')
+
+
 #------------scrollbar to action---------------
 #create frame
 canv_fr_act = tk.Frame(tab5)
@@ -846,5 +869,12 @@ show_users()
 win.protocol("WM_DELETE_WINDOW", on_closing)
 win.mainloop()
 thread.join()
-
-
+num_days = 31
+year = 2021
+month = 5
+start_date = date(year, month, 1)
+end_date = date(year, month, num_days)
+action_results = session.query(Action).filter(and_(Action.action_time >= start_date, Action.action_time <= end_date)).all()
+print("*"*10)
+print(action_results)
+print("*"*10)

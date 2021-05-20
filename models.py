@@ -1,4 +1,4 @@
-from sqlalchemy import delete,create_engine, text, MetaData, Integer, String, Column, ForeignKey, Date, Time, DateTime, Boolean
+from sqlalchemy import and_, delete,create_engine, text, MetaData, Integer, String, Column, ForeignKey, Date, Time, DateTime, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session, subqueryload, joinedload, relationship
 from datetime import date, time, datetime
