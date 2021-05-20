@@ -37,7 +37,7 @@ def search_schedule():
     return session.query(Schedule).all()
 
 def search_payments():
-    return session.query(Payment).all()
+    return session.query(Payment).order_by(Payment.id.desc()).limit(20).all()
 
 def search_actions(session):
     return session.query(Action).order_by(Action.id.desc()).limit(20).all()

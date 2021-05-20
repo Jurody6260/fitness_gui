@@ -98,24 +98,34 @@ def create_action(user_id, isentr, session):
             int(session.query(Schedule).filter_by(id=(session.query(User).filter_by(id=user_id).first().schedule_id)).first().end_time.split(":")[0]) - 1 \
             - int(datetime.now().strftime("%H")) >= 0 and \
                 int(usr_ed) - int(datetime.now().strftime("%Y%m%d")) >= 0:
-                if session.query(Action).filter_by(user_id=user_id).order_by(Action.id.desc()).first().action_time.day != date.today().day and session.query(Action).filter_by(user_id=user_id).order_by(Action.id.desc()).first().allowed == True:
-                    if session.query(User).filter_by(id=user_id).first().train_amount > 0:
-                        amount = session.query(User).filter_by(id=user_id).first().train_amount
-                        amount -= 1
-                        session.query(User).filter_by(id=user_id).first().train_amount = amount
+                if len(session.query(Action).filter_by(user_id=user_id).all()) > 0:
+                    if session.query(Action).filter_by(user_id=user_id).order_by(Action.id.desc()).first().action_time.day != date.today().day and session.query(Action).filter_by(user_id=user_id).order_by(Action.id.desc()).first().allowed == True:
+                        if session.query(User).filter_by(id=user_id).first().train_amount > 0:
+                            amount = session.query(User).filter_by(id=user_id).first().train_amount
+                            amount -= 1
+                            session.query(User).filter_by(id=user_id).first().train_amount = amount
+                            allowed=True
+                            act = Action(user_id=user_id, is_entry=isentr, allowed=allowed, action_time=datetime.now())
+                            session.add(act)
+                            session.commit()
+                            return True
+                        else:
+                            print('You should pay for enter')
+                            allowed=False
+                            act = Action(user_id=user_id, is_entry=isentr, allowed=allowed, action_time=datetime.now())
+                            session.add(act)
+                            session.commit()
+                            return False
+                    else:
                         allowed=True
                         act = Action(user_id=user_id, is_entry=isentr, allowed=allowed, action_time=datetime.now())
                         session.add(act)
                         session.commit()
                         return True
-                    else:
-                        print('You should pay for enter')
-                        allowed=False
-                        act = Action(user_id=user_id, is_entry=isentr, allowed=allowed, action_time=datetime.now())
-                        session.add(act)
-                        session.commit()
-                        return False
                 else:
+                    amount = session.query(User).filter_by(id=user_id).first().train_amount
+                    amount -= 1
+                    session.query(User).filter_by(id=user_id).first().train_amount = amount
                     allowed=True
                     act = Action(user_id=user_id, is_entry=isentr, allowed=allowed, action_time=datetime.now())
                     session.add(act)
@@ -143,7 +153,7 @@ def show_actions(session):
         else:
             return "Deny"
     clear_frame_actions()
-    lbl = tk.Label(frame_act, text="Actions", font=("Arial"), borderwidth=0)
+    lbl = tk.Label(frame_act, text="ACTIONS", font=("Arial"), borderwidth=0, bg='orange')
     lbl.grid(column=0, row=0)
     col=0
     row=1
@@ -153,14 +163,14 @@ def show_actions(session):
 at {i.action_time.strftime('%Y-%m-%d %H:%M:%S')} \
 {inout(i.is_entry)} \
 left: {session.query(User).filter_by(id=i.user_id).first().train_amount} \
-{isallowed(i.allowed)}", relief=tk.GROOVE, borderwidth=0)
+{isallowed(i.allowed)}", width=lbl_width*3+4, borderwidth=0)
             e.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
             col += 1
             if col % 1 == 0:
                 row+=1
                 col=0
     except Exception as E:
-        er = tk.Label(frame_act, text="Nothing", borderwidth=0)
+        er = tk.Label(frame_act, width=lbl_width, text="Nothing", borderwidth=0)
         er.grid(row=5, column=0, padx=5, pady=5)
         print("exc is " + str(E))
 def show_payments():
@@ -168,14 +178,14 @@ def show_payments():
     row=1
     for i in search_payments():
         try:
-            e = tk.Label(frame_pay_all, text=f"{session.query(User).filter_by(id=i.user_id).first().name} $: {i.money} at {i.action_time.strftime('%Y-%m-%d %H:%M:%S')} coach: {session.query(Coach).filter_by(id=i.coach_id).first().name}", borderwidth=0, relief=tk.GROOVE)
+            e = tk.Label(frame_pay_all, width=lbl_width*4-5, text=f"{session.query(User).filter_by(id=i.user_id).first().name} $: {i.money} at {i.action_time.strftime('%Y-%m-%d %H:%M:%S')} coach: {session.query(Coach).filter_by(id=i.coach_id).first().name}", borderwidth=0)
             e.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
             col += 1
             if col % 1 == 0:
                 row+=1
                 col=0
         except:
-            er = tk.Label(frame_pay_all, text="Nothing", borderwidth=0)
+            er = tk.Label(frame_pay_all, width=lbl_width, text="Nothing", borderwidth=0)
             er.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
             col += 1
             if col % 1 == 0:
@@ -187,31 +197,31 @@ def show_schedules():
     row=1
     for i in search_schedule():
         try:
-            e = tk.Label(frame_sched_all, text=f"{i.name}, start: {i.start_time}, end: {i.end_time}, Amount: {i.train_amount}, id: {i.id}", borderwidth=0, relief=tk.GROOVE)
+            e = tk.Label(frame_sched_all, text=f"{i.name}, start: {i.start_time}, end: {i.end_time}, Amount: {i.train_amount}, id: {i.id}", borderwidth=0)
             e.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
             col += 1
             if col % 1 == 0:
                 row+=1
                 col=0
         except:
-            er = tk.Label(frame_sched_all, text="Nothing", borderwidth=0)
+            er = tk.Label(frame_sched_all, width=lbl_width, text="Nothing", borderwidth=0)
             er.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
             col += 1
             if col % 1 == 0:
                 row+=1
                 col=0
-    lbl_del_c = tk.Label(frame_sched_all, text="Input id to delete", borderwidth=0)
+    lbl_del_c = tk.Label(frame_sched_all, width=lbl_width, text="Input id to delete", borderwidth=0)
     lbl_del_c.grid(row=997, column=0, padx=5, pady=5)
     del_entry = tk.Entry(frame_sched_all, bg="white")
     del_entry.grid(row=998, column=0, padx=5, pady=5)
-    del_coach = tk.Button(frame_sched_all, text="Delete", command=lambda: [delete_sch(del_entry.get()), clear_frame_sch(), show_schedules()], width=10)
+    del_coach = tk.Button(frame_sched_all, text="Delete", bg="#000000", fg="#FFFFFF", command=lambda: [delete_sch(del_entry.get()), clear_frame_sch(), show_schedules()], width=10)
     del_coach.grid(row=999, column=0, padx=5, pady=5)
 def show_coaches(): #показать тренеров
     col=0
     row=1
     for i in search_coach():
         try:
-            e = tk.Label(frame_bottom, text=f"{i.name} id: {i.id}", borderwidth=0, relief=tk.GROOVE)
+            e = tk.Label(frame_bottom, width=lbl_width, text=f"{i.name} id: {i.id}", borderwidth=0)
             e.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
             col += 1
             if col % 3 == 0:
@@ -224,11 +234,11 @@ def show_coaches(): #показать тренеров
             if col % 3 == 0:
                 row+=1
                 col=0
-    lbl_del_c = tk.Label(frame_bottom, text="Input id to delete", borderwidth=0)
+    lbl_del_c = tk.Label(frame_bottom, width=lbl_width, text="Input id to delete", borderwidth=0)
     lbl_del_c.grid(row=999, column=0, padx=5, pady=5)
-    del_entry = tk.Entry(frame_bottom, bg="white")
+    del_entry = tk.Entry(frame_bottom, width=lbl_width, bg="white")
     del_entry.grid(row=999, column=1, padx=5, pady=5)
-    del_coach = tk.Button(frame_bottom, text="Delete", command=lambda: [delete_coach(del_entry.get()), clear_frame_coaches(), show_coaches()], width=10)
+    del_coach = tk.Button(frame_bottom, text="Delete", bg="#000000", fg="#FFFFFF", command=lambda: [delete_coach(del_entry.get()), clear_frame_coaches(), show_coaches()], width=10)
     del_coach.grid(row=999, column=2, padx=5, pady=5)
 def edit_user():
     def search_and_input(id):
@@ -287,32 +297,32 @@ def edit_user():
                         show_users(),
                         ])
         Button.grid(column=1, row=10)
-        Button.config(width=10, fg='#009688', borderwidth=2, relief=tk.RAISED)
+        Button.config(width=10, bg="#000000", fg="#FFFFFF", borderwidth=2, relief=tk.RAISED)
         Button.configure(highlightbackground='#009688')
     editwin = tk.Tk()
     editwin.geometry('450x450+350+350')
     editwin.title("Edit User window")
-    editwin.configure(background="grey")
+    editwin.configure(background="orange")
     ed_ef = tk.Entry(editwin, bg='white', font=30)
     ed_ef.insert(0, 'enter id')
     ed_ef.bind("<FocusIn>", lambda args: ed_ef.delete('0', 'end'))
     ed_ef.grid(column=0, row=0)
     ed_btn = tk.Button(editwin, text="edit", command=lambda: [search_and_input(ed_ef.get())])
     ed_btn.grid(column=1, row=0)
-    ed_btn.config(width=10, fg='#009688', borderwidth=2, relief=tk.RAISED)
+    ed_btn.config(width=10, bg="#000000", fg="#FFFFFF", borderwidth=2, relief=tk.RAISED)
     ed_btn.configure(highlightbackground='#009688')
     
     
     
 def show_users(): #показать пользователей
-    lbl = tk.Label(frame_users_all, text="Users", font=("Arial"), borderwidth=0)
+    lbl = tk.Label(frame_users_all, bg="orange", text="Users", font=("Arial"), borderwidth=0)
     lbl.grid(column=0, row=0)
     btn = tk.Button(frame_users_all, text="Edit", command=edit_user)
     btn.grid(row=0, column=1, padx=5, pady=5)
-    btn.config(width=10, fg='#009688', borderwidth=2, relief=tk.RAISED)
+    btn.config(width=10, bg="#000000", fg="#FFFFFF", borderwidth=2, relief=tk.RAISED)
     search_btn = tk.Button(frame_users_all, text="search", command=search_show)
     search_btn.grid(column=2, row=0, padx=5, pady=5)
-    search_btn.config(width=10, fg='#009688', borderwidth=2, relief=tk.RAISED)
+    search_btn.config(width=10, bg="#000000", fg="#FFFFFF", borderwidth=2, relief=tk.RAISED)
     col=0
     row=1
     for i in session.query(User).all():
@@ -322,7 +332,7 @@ def show_users(): #показать пользователей
     schedule: {session.query(Schedule).filter_by(id=i.schedule_id).first().name}
     start: {i.start_date}\n end: {i.end_date} 
     train amount: {i.train_amount} 
-    register {i.registered_on}""", borderwidth=0, relief=tk.GROOVE)
+    register {i.registered_on}""", borderwidth=0)
             e.grid(row=row, column=col, padx=5, pady=5, sticky=tk.NSEW)
             col += 1
             if col % 3 == 0:
@@ -336,12 +346,12 @@ def show_users(): #показать пользователей
                 row+=1
                 col=0
             print("show_users ex "+str(E))
-        lbl_del = tk.Label(frame_users_all, text="Input id to delete", borderwidth=0)
-        lbl_del.grid(row=997, column=0)
+        lbl_del = tk.Label(frame_users_all, width=lbl_width, text="Input id to delete", borderwidth=0)
+        lbl_del.grid(row=999, column=0)
         del_entry = tk.Entry(frame_users_all, bg="white")
-        del_entry.grid(row=998, column=0, padx=5, pady=5)
-        del_usr = tk.Button(frame_users_all, text="Delete", command=lambda: [delete_user(del_entry.get()), clear_frame_users(), show_users()], width=10)
-        del_usr.grid(row=999, column=0, padx=5, pady=5)
+        del_entry.grid(row=999, column=1, padx=5, pady=5)
+        del_usr = tk.Button(frame_users_all, bg="#000000", fg="#FFFFFF", text="Delete", command=lambda: [delete_user(del_entry.get()), clear_frame_users(), show_users()], width=10)
+        del_usr.grid(row=999, column=2, padx=5, pady=5)
 def search_show():
     def clear_frame_searc_user():
         for widgets in searchwin.winfo_children():
@@ -360,17 +370,17 @@ id: {i.id}\n RFID: {i.RFID}\n phone: {i.tel}
 schedule: {session.query(Schedule).filter_by(id=i.schedule_id).first().name}
 start: {i.start_date}\n end: {i.end_date} 
 train amount: {i.train_amount} 
-register {i.registered_on}""", borderwidth=0, relief=tk.GROOVE)
+register {i.registered_on}""", borderwidth=0)
                     e.grid(row=row, column=col, padx=5, pady=5, sticky=tk.NSEW)
                     col += 1
                     if col % 3 == 0:
                         row+=1
                         col=0
-                lbl_del = tk.Label(searchwin, text="Input id to delete", borderwidth=0)
+                lbl_del = tk.Label(searchwin, width=lbl_width, text="Input id to delete", borderwidth=0)
                 lbl_del.grid(row=997, column=0)
                 del_entry = tk.Entry(searchwin, bg="white")
                 del_entry.grid(row=998, column=0, padx=5, pady=5)
-                del_usr = tk.Button(searchwin, text="Delete", command=lambda: [delete_user(del_entry.get()), clear_frame_users(), show_users()], width=10)
+                del_usr = tk.Button(searchwin, bg="#000000", fg="#FFFFFF", text="Delete", command=lambda: [delete_user(del_entry.get()), clear_frame_users(), show_users()], width=10)
                 del_usr.grid(row=999, column=0, padx=5, pady=5)
         if searchby == "by phone":
             for i in session.query(User).all():
@@ -380,17 +390,17 @@ id: {i.id}\n RFID: {i.RFID}\n phone: {i.tel}
 schedule: {session.query(Schedule).filter_by(id=i.schedule_id).first().name}
 start: {i.start_date}\n end: {i.end_date} 
 train amount: {i.train_amount} 
-register {i.registered_on}""", borderwidth=0, relief=tk.GROOVE)
+register {i.registered_on}""", borderwidth=0)
                     e.grid(row=row, column=col, padx=5, pady=5, sticky=tk.NSEW)
                     col += 1
                     if col % 3 == 0:
                         row+=1
                         col=0
-                lbl_del = tk.Label(searchwin, text="Input id to delete", borderwidth=0)
+                lbl_del = tk.Label(searchwin, width=lbl_width, text="Input id to delete", borderwidth=0)
                 lbl_del.grid(row=997, column=0)
                 del_entry = tk.Entry(searchwin, bg="white")
                 del_entry.grid(row=998, column=0, padx=5, pady=5)
-                del_usr = tk.Button(searchwin, text="Delete", command=lambda: [delete_user(del_entry.get()), clear_frame_users(), show_users()], width=10)
+                del_usr = tk.Button(searchwin, text="Delete", bg="#000000", fg="#FFFFFF", command=lambda: [delete_user(del_entry.get()), clear_frame_users(), show_users()], width=10)
                 del_usr.grid(row=999, column=0, padx=5, pady=5)
         if searchby == "Search by...":
             dang = tk.Label(searchwin, text="Please choose filter", borderwidth=0)
@@ -398,7 +408,7 @@ register {i.registered_on}""", borderwidth=0, relief=tk.GROOVE)
     root = tk.Tk()
     root.geometry('450x450+350+350')
     root.title("Search window")
-    root.configure(background="grey")
+    root.configure(background="orange")
     searchwin = tk.Frame(root)
     searchwin.pack(fill="both", expand=True)
     ef_search = tk.Entry(searchwin, font=("Arial"))
@@ -408,7 +418,7 @@ register {i.registered_on}""", borderwidth=0, relief=tk.GROOVE)
     susers_cb = ttk.Combobox(searchwin, value=["by name", "by phone"])
     susers_cb.set("Search by...")
     susers_cb.grid(column=1, row=0)
-    susers_btn = tk.Button(searchwin, text="search", command=searching)
+    susers_btn = tk.Button(searchwin, text="search", bg="#000000", fg="#FFFFFF", command=searching)
     susers_btn.grid(column=2, row=0)
     susers_btn.config(width=10, fg='#009688', borderwidth=2, relief=tk.RAISED)
 
@@ -416,7 +426,7 @@ register {i.registered_on}""", borderwidth=0, relief=tk.GROOVE)
     canv_fr_search_users.place(relx=0, rely=0.10, relwidth=0.9, relheight=0.85)
     #canv_fr_pay.pack(fill=tk.BOTH, expand=1)
     #create a canvas
-    canv_search_users = tk.Canvas(canv_fr_search_users, bg='grey')
+    canv_search_users = tk.Canvas(canv_fr_search_users, bg='orange')
     canv_search_users.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
     #add a scrollbar to canvas
     scroll_coach = ttk.Scrollbar(canv_fr_search_users, orient=tk.VERTICAL, command=canv_search_users.yview)
@@ -426,7 +436,7 @@ register {i.registered_on}""", borderwidth=0, relief=tk.GROOVE)
     canv_search_users.bind_all("<MouseWheel>", fp(_on_mouse_wheel, canv_search_users))
     canv_search_users.bind('<Configure>', lambda e: canv_search_users.configure(scrollregion = canv_search_users.bbox("all")))
     #create another frame inside the canvas
-    searchwin = tk.Frame(canv_search_users, bg='grey')
+    searchwin = tk.Frame(canv_search_users, bg='orange')
     #add that new frame to a window in the canvas
     canv_search_users.create_window((0,0), window=searchwin, anchor="nw")
     
@@ -443,15 +453,15 @@ tab_parent = ttk.Notebook(win)
 tab1 = ttk.Frame(tab_parent)
 tab_parent.add(tab1, text="add Coach")
 
-frame_top = tk.Frame(tab1, bg='#ffb700', bd=5)
+frame_top = tk.Frame(tab1, bg='orange', bd=5)
 frame_top.place(relx=0.15, rely=0.015, relwidth=0.8, relheight=0.2)
 
-lbl = tk.Label(frame_top, text="add Coach", font=("Arial"), borderwidth=0)
+lbl = tk.Label(frame_top, text="ADD COACH", font=("Arial"), borderwidth=0, bg="orange")
 lbl.grid(column=1, row=0)
 
 Button = tk.Button(frame_top, text="add", command=lambda: [create_coach(entry_field.get()), show_coaches()])
 Button.grid(column=2, row=1)
-Button.config(width=10, fg='#009688', borderwidth=2, relief=tk.RAISED)
+Button.config(width=10, bg="#000000", fg="#FFFFFF", borderwidth=2, relief=tk.RAISED)
 Button.configure(highlightbackground='#009688')
 entry_field = tk.Entry(frame_top, bg='white', font=30)
 entry_field.grid(column=1, row=1)
@@ -463,7 +473,7 @@ tab_parent.add(tab2, text="add User")
 frame_users = tk.Frame(tab2, bg='orange', bd=5)
 frame_users.place(relx=0.15, rely=0.015, relwidth=0.8, relheight=0.35)
 
-lbl = tk.Label(frame_users, text="add User", font=("Arial"), borderwidth=0)
+lbl = tk.Label(frame_users, bg='orange', text="ADD USER", font=("Arial"), borderwidth=0)
 lbl.grid(column=1, row=0)
 
 
@@ -519,18 +529,20 @@ command=lambda: [create_user(entry_field_users.get(),
                 show_users()
                 ])
 Button.grid(column=1, row=10)
-Button.config(width=10, fg='#009688', borderwidth=2, relief=tk.RAISED)
+Button.config(width=10, bg="#000000", fg="#FFFFFF", borderwidth=2, relief=tk.RAISED)
 Button.configure(highlightbackground='#009688')
 tab3 = ttk.Frame(tab_parent)
 tab_parent.add(tab3, text="add Schedule")
 frame_sched = tk.Frame(tab3, bg='orange', bd=5)
-frame_sched.place(relx=0.15, rely=0.015, relwidth=0.8, relheight=0.2)
-frame_sched_all = tk.Frame(tab3, bg='grey', bd=5)
-frame_sched_all.place(relx=0.15, rely=0.24, relwidth=0.8, relheight=0.75)
+frame_sched.place(relx=0.15, rely=0.015, relwidth=0.7, relheight=0.2)
+frame_sched_all = tk.Frame(tab3, bg='orange', bd=5)
+frame_sched_all.place(relx=0.15, rely=0.24, relwidth=0.7, relheight=0.75)
 
-lbl = tk.Label(frame_sched, text="add Schedule *24h-format", font=("Arial"), borderwidth=0)
+lbl = tk.Label(frame_sched, bg='orange', text="ADD SCHEDULE", font=("Arial"), borderwidth=0)
 lbl.grid(column=1, row=0)
-lbl = tk.Label(frame_sched_all, text="Schedules", font=("Arial"), borderwidth=0)
+lbl = tk.Label(frame_sched, bg='orange', text="*24H-FORMAT", font=("Arial"), borderwidth=0)
+lbl.grid(column=2, row=0)
+lbl = tk.Label(frame_sched_all, text="Schedules", bg="orange", font=("Arial"), borderwidth=0)
 lbl.grid(column=0, row=0)
 
 name_sch = tk.Label(frame_sched, text="Name", width=lbl_width, borderwidth=0)
@@ -555,7 +567,7 @@ ef_sch_ta.grid(column=1, row=4)
 
 Button = tk.Button(frame_sched, text="add", command=lambda: [create_schedule(ef_sch.get(), ef_sch_st.get(), ef_sch_et.get(), ef_sch_ta.get()), show_schedules()])
 Button.grid(column=1, row=10)
-Button.config(width=10, fg='#009688', borderwidth=2, relief=tk.RAISED)
+Button.config(width=10, pady=5, padx=5, bg="#000000", fg="#FFFFFF", borderwidth=2, relief=tk.RAISED)
 Button.configure(highlightbackground='#009688')
 
 tab4 = ttk.Frame(tab_parent)
@@ -563,7 +575,7 @@ tab_parent.add(tab4, text="add Payment")
 frame_pay = tk.Frame(tab4, bg='orange', bd=5)
 frame_pay.place(relx=0.15, rely=0.015, relwidth=0.7, relheight=0.3)
 
-lbl = tk.Label(frame_pay, text="add Payment", font=("Arial"), borderwidth=0)
+lbl = tk.Label(frame_pay, bg='orange', text="ADD PAYMENT", font=("Arial"), borderwidth=0)
 lbl.grid(column=1, row=0)
 
 
@@ -584,7 +596,7 @@ ef_coachpay.grid(column=1, row=3)
 
 Button = tk.Button(frame_pay, text="add", command=lambda: [create_payment(ef_pay.get(), ef_moneypay.get(), ef_coachpay.get()), show_payments()])
 Button.grid(column=1, row=10)
-Button.config(width=10, fg='#009688', borderwidth=2, relief=tk.RAISED)
+Button.config(width=10, bg="#000000", fg="#FFFFFF", borderwidth=2, relief=tk.RAISED)
 Button.configure(highlightbackground='#009688')
 tab5 = ttk.Frame(tab_parent)
 tab_parent.add(tab5, text="Actions")
@@ -595,14 +607,14 @@ settings_fr = tk.Frame(tab6)
 settings_fr.place(relx=0.15, rely=0.015, relwidth=0.7, relheight=0.3)
 imp_btn = tk.Button(settings_fr, text="Export data", command=export_to_excel)
 imp_btn.grid(column=1, row=1)
-imp_btn.config(width=10, fg='#000000', borderwidth=2, relief=tk.RAISED)
+imp_btn.config(width=10, bg="#000000", fg="#FFFFFF", borderwidth=2, relief=tk.RAISED)
 imp_btn.configure(highlightbackground='#006400')
 #------------scrollbar to action---------------
 #create frame
 canv_fr_act = tk.Frame(tab5)
 canv_fr_act.place(relx=0.15, rely=0.015, relwidth=0.6, relheight=0.9)
 #create a canvas
-canv_act = tk.Canvas(canv_fr_act, bg="grey")
+canv_act = tk.Canvas(canv_fr_act, bg="orange")
 canv_act.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
 #add a scrollbar to canvas
 scroll_act = ttk.Scrollbar(canv_fr_act, orient=tk.VERTICAL, command=canv_act.yview)
@@ -612,7 +624,7 @@ canv_act.configure(yscrollcommand=scroll_act.set)
 canv_act.bind("<MouseWheel>", fp(_on_mouse_wheel, canv_act))    
 canv_act.bind('<Configure>', lambda e: canv_act.configure(scrollregion = canv_act.bbox("all")))
 #create another frame inside the canvas
-frame_act = tk.Frame(canv_act, bg='grey')
+frame_act = tk.Frame(canv_act, bg='orange')
 #add that new frame to a window in the canvas
 canv_act.create_window((0,0), window=frame_act, anchor="nw")
 
@@ -620,7 +632,7 @@ canv_act.create_window((0,0), window=frame_act, anchor="nw")
 canv_fr_pay = tk.Frame(tab4)
 canv_fr_pay.place(relx=0.15, rely=0.35, relwidth=0.7, relheight=0.65)
 #create a canvas
-canv_pay = tk.Canvas(canv_fr_pay, bg='grey')
+canv_pay = tk.Canvas(canv_fr_pay, bg='orange')
 canv_pay.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
 #add a scrollbar to canvas
 scroll_pay = ttk.Scrollbar(canv_fr_pay, orient=tk.VERTICAL, command=canv_pay.yview)
@@ -630,10 +642,10 @@ canv_pay.configure(yscrollcommand=scroll_act.set)
 canv_pay.bind("<MouseWheel>", fp(_on_mouse_wheel, canv_pay))
 canv_pay.bind('<Configure>', lambda e: canv_pay.configure(scrollregion = canv_pay.bbox("all")))
 #create another frame inside the canvas
-frame_pay_all = tk.Frame(canv_pay, bg='grey')
+frame_pay_all = tk.Frame(canv_pay, bg='orange')
 #add that new frame to a window in the canvas
 canv_pay.create_window((0,0), window=frame_pay_all, anchor="nw")
-lbl = tk.Label(frame_pay_all, text="Payments", font=("Arial"), borderwidth=0)
+lbl = tk.Label(frame_pay_all, text="Payments", bg="orange", font=("Arial"), borderwidth=0)
 lbl.grid(column=0, row=0)
 
 
@@ -641,7 +653,7 @@ canv_fr_user = tk.Frame(tab2)
 canv_fr_user.place(relx=0.15, rely=0.40, relwidth=0.8, relheight=0.6)
 #canv_fr_pay.pack(fill=tk.BOTH, expand=1)
 #create a canvas
-canv_user = tk.Canvas(canv_fr_user, bg='grey')
+canv_user = tk.Canvas(canv_fr_user, bg='orange')
 canv_user.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
 #add a scrollbar to canvas
 scroll_user = ttk.Scrollbar(canv_fr_user, orient=tk.VERTICAL, command=canv_user.yview)
@@ -651,11 +663,11 @@ canv_user.configure(yscrollcommand=scroll_user.set)
 canv_user.bind("<MouseWheel>", fp(_on_mouse_wheel, canv_user))
 canv_user.bind('<Configure>', lambda e: canv_user.configure(scrollregion = canv_user.bbox("all")))
 #create another frame inside the canvas
-frame_users_all = tk.Frame(canv_user, bg='grey')
+frame_users_all = tk.Frame(canv_user, bg='orange')
 #add that new frame to a window in the canvas
 canv_user.create_window((0,0), window=frame_users_all, anchor="nw")
 
-lbl = tk.Label(frame_users_all, text="Users", font=("Arial"), borderwidth=0)
+lbl = tk.Label(frame_users_all, bg="orange", text="Users", font=("Arial"), borderwidth=0)
 lbl.grid(column=0, row=0)
 
 
@@ -663,7 +675,7 @@ canv_fr_coach = tk.Frame(tab1)
 canv_fr_coach.place(relx=0.15, rely=0.30, relwidth=0.8, relheight=0.7)
 #canv_fr_pay.pack(fill=tk.BOTH, expand=1)
 #create a canvas
-canv_coach = tk.Canvas(canv_fr_coach, bg='grey')
+canv_coach = tk.Canvas(canv_fr_coach, bg='orange')
 canv_coach.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
 #add a scrollbar to canvas
 scroll_coach = ttk.Scrollbar(canv_fr_coach, orient=tk.VERTICAL, command=canv_coach.yview)
@@ -673,12 +685,12 @@ canv_coach.configure(yscrollcommand=scroll_coach.set)
 canv_coach.bind_all("<MouseWheel>", fp(_on_mouse_wheel, canv_coach))
 canv_coach.bind('<Configure>', lambda e: canv_coach.configure(scrollregion = canv_coach.bbox("all")))
 #create another frame inside the canvas
-frame_bottom = tk.Frame(canv_coach, bg='grey')
+frame_bottom = tk.Frame(canv_coach, bg='orange')
 #add that new frame to a window in the canvas
 canv_coach.create_window((0,0), window=frame_bottom, anchor="nw")
 
 
-lbl = tk.Label(frame_bottom, text="Coaches", font=("Arial"), borderwidth=0)
+lbl = tk.Label(frame_bottom, bg="orange", text="Coaches", font=("Arial"), borderwidth=0)
 lbl.grid(column=1, row=0)
 
 
@@ -706,17 +718,17 @@ show_payments()
 show_cl_sch()
 
 comPorts = []
-# serialPorts = ['COM3']#, 'COM25','/dev/ttyACM0','/dev/ttyACM1','/dev/ttyACM2','/dev/ttyACM3','/dev/ttyUSB0','/dev/ttyUSB1','/dev/ttyUSB2','/dev/ttyUSB3']
-# for port in serialPorts:
-#     try:
-#         arduino_port = serial.Serial(port, baudrate=9600,
-#                                     parity=serial.PARITY_NONE,
-#                                     stopbits=serial.STOPBITS_ONE,
-#                                     bytesize=serial.EIGHTBITS,
-#                                     timeout=0.04)
-#         comPorts.append(arduino_port)
-#     except Exception as E:
-#         print(str(E))
+serialPorts = ['COM3']#, 'COM25','/dev/ttyACM0','/dev/ttyACM1','/dev/ttyACM2','/dev/ttyACM3','/dev/ttyUSB0','/dev/ttyUSB1','/dev/ttyUSB2','/dev/ttyUSB3']
+for port in serialPorts:
+    try:
+        arduino_port = serial.Serial(port, baudrate=9600,
+                                    parity=serial.PARITY_NONE,
+                                    stopbits=serial.STOPBITS_ONE,
+                                    bytesize=serial.EIGHTBITS,
+                                    timeout=0.04)
+        comPorts.append(arduino_port)
+    except Exception as E:
+        print(str(E))
 
 def serialThread1():
     global running
@@ -789,8 +801,8 @@ def serialThread(comPorts, session):
             #      print("abort:" + str(comPorts.pop(portIndex)))
             #      reboot()
             print("Serial thread:" + str(ex))
-# thread = threading.Thread(target=serialThread1)
-# thread.start()
+thread = threading.Thread(target=serialThread1)
+thread.start()
 def on_closing():
     session.close()
     global running
@@ -800,6 +812,6 @@ def on_closing():
 show_users()
 win.protocol("WM_DELETE_WINDOW", on_closing)
 win.mainloop()
-# thread.join()
+thread.join()
 
 
