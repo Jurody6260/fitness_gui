@@ -26,7 +26,7 @@ def export_to_excel(fname, year, month):
             num_days = calendar.monthrange(year, month)[1]
             start_date = date(year, month, 1)
             end_date = date(year, month, num_days)
-            action_results = session.query(User).filter(User.id==1).name
+            action_results = session.query(User).filter(User.id==1).
             #action_results = session.query(Action).filter(and_(Action.action_time >= start_date, Action.action_time <= end_date)).all()
             payment_results = session.query(Payment).filter(
 and_(Payment.action_time >= start_date, Payment.action_time <= end_date)).all()
