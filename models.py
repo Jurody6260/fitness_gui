@@ -171,9 +171,8 @@ class Coach(Base):
             "id" : self.id,
             "name" : self.name
         }
-
-
 #Base.metadata.drop_all(bind=engine)
 Base.metadata.create_all(bind=engine)
 session.close()
+
 #8765AB12 1234AB12

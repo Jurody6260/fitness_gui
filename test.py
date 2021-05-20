@@ -1,9 +1,14 @@
 import tkinter as tk
 from tkinter import ttk
 from models import *
+
 import functools
 fp=functools.partial
 lbl_width = 15
+def drop_create_db():
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+    
 def show_cl_sch():
     global opt_user_sch
     try:
@@ -14,13 +19,23 @@ def show_cl_sch():
         opt_user_sch = ttk.Combobox(frame_users, value=["please add schedule"], width=lbl_width+12)
         opt_user_sch.current(0)
         opt_user_sch.grid(column=1, row=4)
-def export_to_excel():
-    writer = pd.ExcelWriter('test.xlsx')
-    action_table = pd.read_sql_table('action', engine)
-    payment_table = pd.read_sql_table('payment', engine)
-    with writer:
-        action_table.to_excel(writer, sheet_name="Actions", index=False)
-        payment_table.to_excel(writer, sheet_name="Payments", index=False)
+def export_to_excel(fname):
+    if fname != '':
+        try:
+            writer = pd.ExcelWriter(fname + '.xlsx')
+            action_table = pd.read_sql_table('action', engine, columns=["action_time", "is_entry", "allowed", "user_id"])
+            payment_table = pd.read_sql_table('payment', engine, columns=["money","action_time", "coach_id", "user_id"])
+            user_table = pd.read_sql_table('user', engine, columns=["id", "name"])
+            df = pd.merge(user_table, action_table, left_on="id", right_on="user_id", how="right")
+            df1 = pd.merge(user_table, payment_table, left_on="id", right_on="user_id", how="right")
+            with writer:
+                df.to_excel(writer, sheet_name="Merged action", index=False)
+                df1.to_excel(writer, sheet_name="Merged payment", index=False)
+                action_table.to_excel(writer, sheet_name="Actions", index=False)
+                payment_table.to_excel(writer, sheet_name="Payments", index=False)
+                user_table.to_excel(writer, sheet_name="Users name", index=False)
+        except Exception as e:
+            print("excel export err:" + e)
 def _on_mouse_wheel(canv, event):
     canv.yview_scroll(-1 * int((event.delta / 120)), "units")
 def clear_frame_coaches():
@@ -221,10 +236,10 @@ def show_coaches(): #показать тренеров
     row=1
     for i in search_coach():
         try:
-            e = tk.Label(frame_bottom, width=lbl_width, text=f"{i.name} id: {i.id}", borderwidth=0)
+            e = tk.Label(frame_bottom, width=lbl_width+15, text=f"{i.name} id: {i.id}", borderwidth=0)
             e.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
             col += 1
-            if col % 3 == 0:
+            if col % 2 == 0:
                 row+=1
                 col=0
         except:
@@ -235,11 +250,11 @@ def show_coaches(): #показать тренеров
                 row+=1
                 col=0
     lbl_del_c = tk.Label(frame_bottom, width=lbl_width, text="Input id to delete", borderwidth=0)
-    lbl_del_c.grid(row=999, column=0, padx=5, pady=5)
+    lbl_del_c.grid(row=997, column=0, padx=5, pady=5)
     del_entry = tk.Entry(frame_bottom, width=lbl_width, bg="white")
-    del_entry.grid(row=999, column=1, padx=5, pady=5)
+    del_entry.grid(row=998, column=0, padx=5, pady=5)
     del_coach = tk.Button(frame_bottom, text="Delete", bg="#000000", fg="#FFFFFF", command=lambda: [delete_coach(del_entry.get()), clear_frame_coaches(), show_coaches()], width=10)
-    del_coach.grid(row=999, column=2, padx=5, pady=5)
+    del_coach.grid(row=999, column=0, padx=5, pady=5)
 def edit_user():
     def search_and_input(id):
         name_user = tk.Label(editwin, text="Name", width=lbl_width, borderwidth=0)
@@ -283,7 +298,7 @@ def edit_user():
         ef_user_lvl = tk.Entry(editwin, bg='white', font=30)
         ef_user_lvl.grid(column=1, row=8)
         ef_user_lvl.insert(0, session.query(User).filter_by(id=id).first().user_level)
-        Button = tk.Button(editwin, text="edit", 
+        Button = tk.Button(editwin, text="submit edit", 
         command=lambda: [ed_user_db(entry_field_users.get(), 
                         ef_user_rfid.get(), 
                         ef_user_tel.get(), 
@@ -315,7 +330,7 @@ def edit_user():
     
     
 def show_users(): #показать пользователей
-    lbl = tk.Label(frame_users_all, bg="orange", text="Users", font=("Arial"), borderwidth=0)
+    lbl = tk.Label(frame_users_all, bg="orange", text="USERS", font=("Arial"), borderwidth=0)
     lbl.grid(column=0, row=0)
     btn = tk.Button(frame_users_all, text="Edit", command=edit_user)
     btn.grid(row=0, column=1, padx=5, pady=5)
@@ -542,7 +557,7 @@ lbl = tk.Label(frame_sched, bg='orange', text="ADD SCHEDULE", font=("Arial"), bo
 lbl.grid(column=1, row=0)
 lbl = tk.Label(frame_sched, bg='orange', text="*24H-FORMAT", font=("Arial"), borderwidth=0)
 lbl.grid(column=2, row=0)
-lbl = tk.Label(frame_sched_all, text="Schedules", bg="orange", font=("Arial"), borderwidth=0)
+lbl = tk.Label(frame_sched_all, text="SCHEDULES", bg="orange", font=("Arial"), borderwidth=0)
 lbl.grid(column=0, row=0)
 
 name_sch = tk.Label(frame_sched, text="Name", width=lbl_width, borderwidth=0)
@@ -605,10 +620,28 @@ tab6 = ttk.Frame(tab_parent)
 tab_parent.add(tab6, text="Settings")
 settings_fr = tk.Frame(tab6)
 settings_fr.place(relx=0.15, rely=0.015, relwidth=0.7, relheight=0.3)
-imp_btn = tk.Button(settings_fr, text="Export data", command=export_to_excel)
-imp_btn.grid(column=1, row=1)
+
+lbl = tk.Label(settings_fr, text="EXPORT DATA", font=("Arial"), borderwidth=0)
+lbl.grid(column=1, row=0)
+
+
+name_exc_file = tk.Label(settings_fr, text="FILE NAME", width=lbl_width, borderwidth=0)
+name_exc_file.grid(column=0,row=1)
+e_f_exc_file = tk.Entry(settings_fr, bg='white', font=30)
+e_f_exc_file.grid(column=1, row=1)
+
+imp_btn = tk.Button(settings_fr, text="Export data", command=lambda: [export_to_excel(e_f_exc_file.get())])
+imp_btn.grid(column=1, row=2)
 imp_btn.config(width=10, bg="#000000", fg="#FFFFFF", borderwidth=2, relief=tk.RAISED)
 imp_btn.configure(highlightbackground='#006400')
+
+
+drp_lbl = tk.Label(settings_fr, bg="#df4759", text="DROP ALL DATABASE", width=lbl_width + 5, borderwidth=0)
+drp_lbl.grid(column=0,row=998, padx=5, pady=5)
+reload_btn = tk.Button(settings_fr, text="clear all", command=drop_create_db)
+reload_btn.grid(column=0, row=999, padx=5, pady=5)
+reload_btn.config(width=10, bg="#df4759", fg="#FFFFFF", borderwidth=2, relief=tk.RAISED)
+reload_btn.configure(highlightbackground='#006400')
 #------------scrollbar to action---------------
 #create frame
 canv_fr_act = tk.Frame(tab5)
@@ -645,7 +678,7 @@ canv_pay.bind('<Configure>', lambda e: canv_pay.configure(scrollregion = canv_pa
 frame_pay_all = tk.Frame(canv_pay, bg='orange')
 #add that new frame to a window in the canvas
 canv_pay.create_window((0,0), window=frame_pay_all, anchor="nw")
-lbl = tk.Label(frame_pay_all, text="Payments", bg="orange", font=("Arial"), borderwidth=0)
+lbl = tk.Label(frame_pay_all, text="PAYMENTS", bg="orange", font=("Arial"), borderwidth=0)
 lbl.grid(column=0, row=0)
 
 
@@ -690,8 +723,8 @@ frame_bottom = tk.Frame(canv_coach, bg='orange')
 canv_coach.create_window((0,0), window=frame_bottom, anchor="nw")
 
 
-lbl = tk.Label(frame_bottom, bg="orange", text="Coaches", font=("Arial"), borderwidth=0)
-lbl.grid(column=1, row=0)
+lbl = tk.Label(frame_bottom, bg="orange", text="COACHES", font=("Arial"), borderwidth=0)
+lbl.grid(column=0, row=0)
 
 
 tab_parent.pack(expand=1, fill='both')
