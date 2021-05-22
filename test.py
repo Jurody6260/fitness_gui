@@ -3,7 +3,6 @@ from tkinter import ttk
 from models import *
 import calendar
 import functools
-import xlwt
 fp=functools.partial
 lbl_width = 15
 def drop_create_db():
@@ -20,7 +19,7 @@ def show_cl_sch():
         opt_user_sch = ttk.Combobox(frame_users, value=["please add schedule"], width=lbl_width+12)
         opt_user_sch.current(0)
         opt_user_sch.grid(column=1, row=4)
-def export_to_excel(fname, year, month):    
+def export_to_excel(fname, year, month):
     if fname != '':
         year, month = int(year), int(month)   
         try:
