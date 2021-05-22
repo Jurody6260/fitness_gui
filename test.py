@@ -3,6 +3,7 @@ from tkinter import ttk
 from models import *
 import calendar
 import functools
+import xlwt
 fp=functools.partial
 lbl_width = 15
 def drop_create_db():
@@ -19,32 +20,51 @@ def show_cl_sch():
         opt_user_sch = ttk.Combobox(frame_users, value=["please add schedule"], width=lbl_width+12)
         opt_user_sch.current(0)
         opt_user_sch.grid(column=1, row=4)
-def export_to_excel(fname, year, month):
+def export_to_excel(fname, year, month):    
     if fname != '':
-        year, month = int(year), int(month)
+        year, month = int(year), int(month)   
         try:
             num_days = calendar.monthrange(year, month)[1]
             start_date = date(year, month, 1)
             end_date = date(year, month, num_days)
-            action_results = session.query(User).filter(User.id==1).
-            #action_results = session.query(Action).filter(and_(Action.action_time >= start_date, Action.action_time <= end_date)).all()
+            action_results = session.query(Action).filter(
+and_(Action.action_time >= start_date, Action.action_time <= end_date))
             payment_results = session.query(Payment).filter(
-and_(Payment.action_time >= start_date, Payment.action_time <= end_date)).all()
+and_(Payment.action_time >= start_date, Payment.action_time <= end_date))
             writer = pd.ExcelWriter(fname + '.xlsx')
             action_table = pd.read_sql_table('action', engine, columns=["action_time", "is_entry", "allowed", "user_id"])
             payment_table = pd.read_sql_table('payment', engine, columns=["money","action_time", "coach_id", "user_id"])
             user_table = pd.read_sql_table('user', engine, columns=["id", "name"])
             df = pd.merge(user_table, action_table, left_on="id", right_on="user_id", how="right")
             df1 = pd.merge(user_table, payment_table, left_on="id", right_on="user_id", how="right")
-            df2 = pd.read_sql(action_results, engine)
+            df2 = pd.read_sql(str(action_results), engine, params=[start_date, end_date], columns=["action_time", "is_entry", "allowed", "user_id"])
+            for i, row in df2.iterrows():
+                df2['action_is_entry'] = df2['action_is_entry'].apply(str)
+                df2['action_is_entry'] = df2['action_is_entry'].astype(str)
+                df2 = df2.applymap(str)
+                enter = "Enter"
+                allow = "Allowed"
+                print(i)
+                print(row)
+                if row["action_is_entry"] == 0:
+                    enter = "Left"
+                if row["action_allowed"] == 0:
+                    allow = "Deny"
+                df2.at[i,"action_user_id"] = session.query(User).filter_by(id=row["action_user_id"]).first().name
+                df2.at[i,'action_is_entry'] = enter
+                df2.at[i,'action_allowed'] = allow
+            df3 = pd.read_sql(str(payment_results), engine,params=[start_date, end_date], columns=["money","action_time", "coach_id", "user_id"])
+            for i, row in df3.iterrows():
+                df3['payment_user_id'] = df3['payment_user_id'].apply(str)
+                df3['payment_user_id'] = df3['payment_user_id'].astype(str)
+                df3 = df3.applymap(str)
+                df3.at[i,"payment_coach_id"] = session.query(Coach).filter_by(id=row["payment_coach_id"]).first().name
+                df3.at[i,"payment_user_id"] = session.query(User).filter_by(id=row["payment_user_id"]).first().name
             with writer:
-                df.to_excel(writer, sheet_name="Merged action", index=False)
-                df1.to_excel(writer, sheet_name="Merged payment", index=False)
                 df2.to_excel(writer, sheet_name="Actions", index=False)
-                payment_table.to_excel(writer, sheet_name="Payments", index=False)
-                user_table.to_excel(writer, sheet_name="Users name", index=False)
+                df3.to_excel(writer, sheet_name="Payments", index=False)
         except Exception as e:
-            "excel export err:" + e
+            print("excel export err:" + str(e))
 def _on_mouse_wheel(canv, event):
     canv.yview_scroll(-1 * int((event.delta / 120)), "units")
 def clear_frame_coaches():
@@ -805,7 +825,6 @@ def serialThread(comPorts, session):
             rec = str(comPort.readline())
             
             if len(rec) > 4:
-                print(rec)
                 rec=rec.strip()
                 data= rec.strip().split('#')
                 if len(data) > 3: 
@@ -813,7 +832,6 @@ def serialThread(comPorts, session):
                     index = dev_id - 1
                     RFID = data[2].strip().upper()
                     gate = int(data[3])
-                    print(RFID)
                     if RFID == "TEST" or RFID == "RESET":
                         date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                         
@@ -829,7 +847,6 @@ def serialThread(comPorts, session):
                         try:
                             #session = Session()
                             usr = session.query(User).filter_by(RFID=RFID).first()
-                            print("IT WORKS")
                             if usr.id==None:
                                 if usr.RFID!=None:
                                     print("Net usera id")
@@ -847,7 +864,7 @@ def serialThread(comPorts, session):
                                # stdNames[index].config(text=name+"\n"+group_id)
                           
                         except Exception as ex:  
-                            print (ex)
+                            print(str(ex))
                            # stdNames[index].config(text="Aniqlanmagan")
                            # stdPhotos[index].config(image=unknownImg)
                            # stdPhotos[index].image = unknownImg   
@@ -869,12 +886,3 @@ show_users()
 win.protocol("WM_DELETE_WINDOW", on_closing)
 win.mainloop()
 thread.join()
-num_days = 31
-year = 2021
-month = 5
-start_date = date(year, month, 1)
-end_date = date(year, month, num_days)
-action_results = session.query(Action).filter(and_(Action.action_time >= start_date, Action.action_time <= end_date)).all()
-print("*"*10)
-print(action_results)
-print("*"*10)

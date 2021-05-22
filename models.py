@@ -149,7 +149,6 @@ class Payment(Base):
     coach_id = Column(Integer, ForeignKey("coach.id"), nullable=False)
     user = relationship("User", back_populates="payment")
     coach = relationship("Coach", back_populates="payment")
-
     def format(self):
         return {
             "id" : self.id,
