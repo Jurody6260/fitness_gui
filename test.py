@@ -19,6 +19,39 @@ def show_cl_sch():
         opt_user_sch = ttk.Combobox(frame_users, value=["please add schedule"], width=lbl_width+12)
         opt_user_sch.current(0)
         opt_user_sch.grid(column=1, row=4)
+def export_to_excelv2(fname, year, month):
+    if fname != '':
+        year, month = int(year), int(month) 
+        try:
+            writer = pd.ExcelWriter(fname + '.xlsx')
+            session.query(Action).filter(Action.action_time)
+            num_days = calendar.monthrange(year, month)[1]
+            start_date = date(year, month, 1)
+            end_date = date(year, month, num_days)
+            users = session.query(User)
+            action_table = pd.read_sql_table('action', engine, columns=["action_time", "is_entry", "allowed", "user_id"])
+            for i in session.query(Action.action_time):
+                if i.action_time.year == year and i.action_time.month == month:
+                    pass
+            uuids = []
+            data = {'Name' : ["Azamat"]}
+            for id in session.query(Action.user_id).all():
+                if id.user_id not in uuids:
+                    uuids.append(id.user_id)
+            df = pd.DataFrame({'Number' : [i for i in range(len(uuids))]})
+            for id in uuids:
+                for day in range(1, num_days + 1):
+                    df["name"] = str(session.query(User).filter_by(id=id).first().name)
+                    try:
+                        if len(session.query(Action).filter(and_(Action.user_id==id, func.DATE(Action.action_time)==f"{year}-{month}-{day}")).order_by(Action.action_time).first().action_time) != 0:
+                            df[str(day)+ ' ' + str(calendar.month_name[month])] = str(session.query(Action).filter(and_(Action.user_id==id, func.DATE(Action.action_time)==f"{year}-{month}-{day}")).order_by(
+                            Action.action_time).first().action_time) + ' / ' + str(session.query(Action).filter(and_(Action.user_id==id, func.DATE(Action.action_time)==f"{year}-{month}-{day}")).order_by(Action.action_time.desc()).first().action_time)
+                    except Exception as e:
+                        print(str(e))
+            with pd.ExcelWriter(fname + '.xlsx') as writer:
+                df.to_excel(writer, sheet_name="Actions", index=False)
+        except Exception as e:
+            print(str(e))
 def export_to_excel(fname, year, month):
     if fname != '':
         year, month = int(year), int(month)   
@@ -52,7 +85,7 @@ and_(Payment.action_time >= start_date, Payment.action_time <= end_date))
                 df2.at[i,"action_user_id"] = session.query(User).filter_by(id=row["action_user_id"]).first().name
                 df2.at[i,'action_is_entry'] = enter
                 df2.at[i,'action_allowed'] = allow
-            df3 = pd.read_sql(str(payment_results), engine,params=[start_date, end_date], columns=["money","action_time", "coach_id", "user_id"])
+            df3 = pd.read_sql(str(payment_results), engine, params=[start_date, end_date], columns=["money","action_time", "coach_id", "user_id"])
             for i, row in df3.iterrows():
                 df3['payment_user_id'] = df3['payment_user_id'].apply(str)
                 df3['payment_user_id'] = df3['payment_user_id'].astype(str)
@@ -669,7 +702,7 @@ e_f_month.grid(column=1, row=3)
 e_f_month.insert(0, datetime.now().strftime("%m"))
 
 
-imp_btn = tk.Button(settings_fr, text="Export data", command=lambda: [export_to_excel(e_f_exc_file.get(),
+imp_btn = tk.Button(settings_fr, text="Export data", command=lambda: [export_to_excelv2(e_f_exc_file.get(),
 e_f_year_lbl.get(), e_f_month.get() )])
 imp_btn.grid(column=1, row=15)
 imp_btn.config(width=10, padx=5, pady=5, bg="#000000", fg="#FFFFFF", borderwidth=2, relief=tk.RAISED)
