@@ -50,26 +50,18 @@ def export_to_excelv2(fname, year, month):
                         if type(session.query(Action).filter(and_(Action.user_id==id, func.DATE(Action.action_time)==f"{year}-{month}-{day}")).order_by(Action.action_time).first()) != "NoneType" and session.query(Action).filter(and_(Action.user_id==id, func.DATE(Action.action_time)==f"{year}-{month}-{day}")).order_by(Action.action_time).first() is not None:
                             df[str(day)+ ' ' + calendar.month_name[mon]] = session.query(Action).filter(and_(Action.user_id==id, func.DATE(Action.action_time)==f"{year}-{month}-{day}")).order_by(
                             Action.action_time).first().action_time.strftime("%H:%M:%S") + ' / ' + session.query(Action).filter(and_(Action.user_id==id, func.DATE(Action.action_time)==f"{year}-{month}-{day}")).order_by(Action.action_time.desc()).first().action_time.strftime("%H:%M:%S")
-                            
                     except Exception as e:
-                        
                         print("EX: " + str(e))
-                
                 dfs.append(df)
                 del df
             vv = dfs[0].copy()
             for d in range(1,len(dfs)):
-                print("----------")
                 vv.append(dfs[d], ignore_index=False)
-                
-            
-            
             with pd.ExcelWriter(fname + '.xlsx') as writer:
                 sr = 1
                 dfs[0].to_excel(writer,sheet_name="Actions", index=False)
                 for a in range(len(dfs)):
                     dfs[a].to_excel(writer,startrow=sr, sheet_name="Actions", index=False, header=False)
-                    print(dfs[a])
                     sr +=1
         except Exception as e:
             print(str(e))
