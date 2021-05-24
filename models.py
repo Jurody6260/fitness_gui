@@ -9,9 +9,14 @@ import pandas as pd
 from openpyxl import Workbook
 #us = User(name="Azamat", RFID="12345678", tel="123123", schedule_id=""  
 
+import logging
+
+logging.basicConfig()
+logging.getLogger('sqlalchemy').setLevel(logging.ERROR)
+
 meta = MetaData()
 Base = declarative_base()
-engine = create_engine("sqlite:///fitness.db", echo=True)
+engine = create_engine("sqlite:///fitness.db")
 
 
 Session = sessionmaker(bind=engine)

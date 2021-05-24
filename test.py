@@ -20,36 +20,57 @@ def show_cl_sch():
         opt_user_sch.current(0)
         opt_user_sch.grid(column=1, row=4)
 def export_to_excelv2(fname, year, month):
+    mon, year = int(month), int(year)
     if fname != '':
-        year, month = int(year), int(month) 
         try:
             writer = pd.ExcelWriter(fname + '.xlsx')
             session.query(Action).filter(Action.action_time)
-            num_days = calendar.monthrange(year, month)[1]
-            start_date = date(year, month, 1)
-            end_date = date(year, month, num_days)
+            num_days = calendar.monthrange(year, mon)[1]
+            start_date = date(year, mon, 1)
+            end_date = date(year, mon, num_days)
             users = session.query(User)
             action_table = pd.read_sql_table('action', engine, columns=["action_time", "is_entry", "allowed", "user_id"])
             for i in session.query(Action.action_time):
-                if i.action_time.year == year and i.action_time.month == month:
+                if i.action_time.year == year and i.action_time.month == mon:
                     pass
             uuids = []
-            data = {'Name' : ["Azamat"]}
+            ism = []
             for id in session.query(Action.user_id).all():
                 if id.user_id not in uuids:
+                    ism.append(session.query(User).filter_by(id=id.user_id).first())
+                    data = {'Name' : ism}
                     uuids.append(id.user_id)
-            df = pd.DataFrame({'Number' : [i for i in range(len(uuids))]})
+            dfs = []
+            uuids.sort()
             for id in uuids:
+                df = pd.DataFrame({'User ID' : [id] })
+                df["name"] = str(session.query(User).filter_by(id=id).first().name)
                 for day in range(1, num_days + 1):
-                    df["name"] = str(session.query(User).filter_by(id=id).first().name)
                     try:
-                        if len(session.query(Action).filter(and_(Action.user_id==id, func.DATE(Action.action_time)==f"{year}-{month}-{day}")).order_by(Action.action_time).first().action_time) != 0:
-                            df[str(day)+ ' ' + str(calendar.month_name[month])] = str(session.query(Action).filter(and_(Action.user_id==id, func.DATE(Action.action_time)==f"{year}-{month}-{day}")).order_by(
-                            Action.action_time).first().action_time) + ' / ' + str(session.query(Action).filter(and_(Action.user_id==id, func.DATE(Action.action_time)==f"{year}-{month}-{day}")).order_by(Action.action_time.desc()).first().action_time)
+                        if type(session.query(Action).filter(and_(Action.user_id==id, func.DATE(Action.action_time)==f"{year}-{month}-{day}")).order_by(Action.action_time).first()) != "NoneType" and session.query(Action).filter(and_(Action.user_id==id, func.DATE(Action.action_time)==f"{year}-{month}-{day}")).order_by(Action.action_time).first() is not None:
+                            df[str(day)+ ' ' + calendar.month_name[mon]] = session.query(Action).filter(and_(Action.user_id==id, func.DATE(Action.action_time)==f"{year}-{month}-{day}")).order_by(
+                            Action.action_time).first().action_time.strftime("%H:%M:%S") + ' / ' + session.query(Action).filter(and_(Action.user_id==id, func.DATE(Action.action_time)==f"{year}-{month}-{day}")).order_by(Action.action_time.desc()).first().action_time.strftime("%H:%M:%S")
+                            
                     except Exception as e:
-                        print(str(e))
+                        
+                        print("EX: " + str(e))
+                
+                dfs.append(df)
+                del df
+            vv = dfs[0].copy()
+            for d in range(1,len(dfs)):
+                print("----------")
+                vv.append(dfs[d], ignore_index=False)
+                
+            
+            
             with pd.ExcelWriter(fname + '.xlsx') as writer:
-                df.to_excel(writer, sheet_name="Actions", index=False)
+                sr = 1
+                dfs[0].to_excel(writer,sheet_name="Actions", index=False)
+                for a in range(len(dfs)):
+                    dfs[a].to_excel(writer,startrow=sr, sheet_name="Actions", index=False, header=False)
+                    print(dfs[a])
+                    sr +=1
         except Exception as e:
             print(str(e))
 def export_to_excel(fname, year, month):
