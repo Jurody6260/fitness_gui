@@ -30,15 +30,9 @@ def export_to_excelv2(fname, year, month):
             end_date = date(year, mon, num_days)
             users = session.query(User)
             action_table = pd.read_sql_table('action', engine, columns=["action_time", "is_entry", "allowed", "user_id"])
-            for i in session.query(Action.action_time):
-                if i.action_time.year == year and i.action_time.month == mon:
-                    pass
             uuids = []
-            ism = []
             for id in session.query(Action.user_id).all():
                 if id.user_id not in uuids:
-                    ism.append(session.query(User).filter_by(id=id.user_id).first())
-                    data = {'Name' : ism}
                     uuids.append(id.user_id)
             dfs = []
             uuids.sort()
@@ -46,23 +40,36 @@ def export_to_excelv2(fname, year, month):
                 df = pd.DataFrame({'User ID' : [id] })
                 df["name"] = str(session.query(User).filter_by(id=id).first().name)
                 for day in range(1, num_days + 1):
+                    def in_out_timing():
+                        def allo():
+                            if filtertimses.first().allowed == True:
+                                return "Allowed"
+                            else:
+                                return "Deny"
+                        filtertimses = session.query(Action).filter(and_(Action.user_id==id, func.DATE(Action.action_time)==f"{year}-{month}-{day}"))
+                        intim = filtertimses.order_by(Action.action_time).first().action_time.strftime("%H:%M:%S") 
+                        outtim = filtertimses.order_by(Action.action_time.desc()).first().action_time.strftime("%H:%M:%S")
+                        if filtertimses.first().is_entry == True and filtertimses.order_by(Action.action_time.desc()).first().is_entry == False:
+                            return intim + ' / ' + outtim
+                        elif filtertimses.first().is_entry == False and filtertimses.order_by(Action.action_time.desc()).first().is_entry == False:
+                            return "-" + ' / ' + outtim
+                        elif filtertimses.first().is_entry == True and filtertimses.order_by(Action.action_time.desc()).first().is_entry == True:
+                            return intim + ' / ' + "-"
                     try:
                         if type(session.query(Action).filter(and_(Action.user_id==id, func.DATE(Action.action_time)==f"{year}-{month}-{day}")).order_by(Action.action_time).first()) != "NoneType" and session.query(Action).filter(and_(Action.user_id==id, func.DATE(Action.action_time)==f"{year}-{month}-{day}")).order_by(Action.action_time).first() is not None:
-                            df[str(day)+ ' ' + calendar.month_name[mon]] = session.query(Action).filter(and_(Action.user_id==id, func.DATE(Action.action_time)==f"{year}-{month}-{day}")).order_by(
-                            Action.action_time).first().action_time.strftime("%H:%M:%S") + ' / ' + session.query(Action).filter(and_(Action.user_id==id, func.DATE(Action.action_time)==f"{year}-{month}-{day}")).order_by(Action.action_time.desc()).first().action_time.strftime("%H:%M:%S")
+                            df[str(day)+ ' ' + calendar.month_name[mon]] = in_out_timing()
+                        else:
+                            df[str(day)+ ' ' + calendar.month_name[mon]] = "- / -"
                     except Exception as e:
                         print("EX: " + str(e))
                 dfs.append(df)
                 del df
-            vv = dfs[0].copy()
-            for d in range(1,len(dfs)):
-                vv.append(dfs[d], ignore_index=False)
-            with pd.ExcelWriter(fname + '.xlsx') as writer:
-                sr = 1
-                dfs[0].to_excel(writer,sheet_name="Actions", index=False)
-                for a in range(len(dfs)):
-                    dfs[a].to_excel(writer,startrow=sr, sheet_name="Actions", index=False, header=False)
-                    sr +=1
+                with pd.ExcelWriter(fname + '.xlsx') as writer:
+                    sr = 1
+                    dfs[0].to_excel(writer,sheet_name="Actions", index=False)
+                    for a in range(len(dfs)):
+                        dfs[a].to_excel(writer,startrow=sr, sheet_name="Actions", index=False, header=False)
+                        sr +=1
         except Exception as e:
             print(str(e))
 def export_to_excel(fname, year, month):
@@ -166,6 +173,7 @@ def ed_user_db(name, RFID, tel, schedule_id, start_d, end_d, train_amount, lvl, 
         usr.user_level = lvl
         session.add(usr)
         session.commit()
+        print(session.query(User).filter_by(id=id).first().RFID)
         if len(session.query(User).all()) > 0:
             show_users()
 def create_action(user_id, isentr, session):
@@ -179,9 +187,8 @@ def create_action(user_id, isentr, session):
                 session.add(act)
                 session.commit()
                 return True
-            usr_ed = session.query(User).filter_by(id=user_id).first().end_date.split("-")[0]\
-                + session.query(User).filter_by(id=user_id).first().end_date.split("-")[1]\
-                    + session.query(User).filter_by(id=user_id).first().end_date.split("-")[2]
+            usr_date_come = session.query(User).filter_by(id=user_id).first().end_date.split("-")
+            usr_ed = usr_date_come[0] + usr_date_come[1] + usr_date_come[2]
             if int(session.query(Schedule).filter_by(id=(session.query(User).filter_by(id=user_id).first().schedule_id)).first().start_time.split(":")[0]) \
             - int(datetime.now().strftime("%H")) <= 0 and \
             int(session.query(Schedule).filter_by(id=(session.query(User).filter_by(id=user_id).first().schedule_id)).first().end_time.split(":")[0]) - 1 \
@@ -839,7 +846,8 @@ show_payments()
 show_cl_sch()
 
 comPorts = []
-serialPorts = ['COM3']#, 'COM25','/dev/ttyACM0','/dev/ttyACM1','/dev/ttyACM2','/dev/ttyACM3','/dev/ttyUSB0','/dev/ttyUSB1','/dev/ttyUSB2','/dev/ttyUSB3']
+serialPorts = ['COM1', 'COM2', 'COM3','COM4', 'COM25','/dev/ttyACM0','/dev/ttyACM1','/dev/ttyACM2','/dev/ttyACM3','/dev/ttyUSB0','/dev/ttyUSB1','/dev/ttyUSB2','/dev/ttyUSB3'] 
+#]
 for port in serialPorts:
     try:
         arduino_port = serial.Serial(port, baudrate=9600,
@@ -850,9 +858,9 @@ for port in serialPorts:
         comPorts.append(arduino_port)
     except Exception as E:
         print(str(E))
-
+array1 = [-1,-1,-1,-1]
 def serialThread1():
-    global running
+    global running, comPorts
     meta = MetaData()
     Base = declarative_base()
     engine = create_engine("sqlite:///fitness.db", echo=True)
@@ -868,48 +876,76 @@ def serialThread(comPorts, session):
         portIndex = portIndex + 1
         try:
             rec = str(comPort.readline())
-            
+            global array1
+            for i in range(4):
+                if array1[i] >= 0:
+                    array1[i] = array1[i] + 1
+                    if array1[i] > 40:
+                        array1[i] = -1
+                        if i == 0:
+                            dev_id = "!"
+                        elif i == 1:
+                            dev_id = "@"
+                        elif i == 2:
+                            dev_id = "#"
+                        else:
+                            dev_id = "$"
+                        comPort.write(str.encode(str(dev_id) + '*\n'))
+
             if len(rec) > 4:
+                print(rec)
                 rec=rec.strip()
                 data= rec.strip().split('#')
-                if len(data) > 3: 
-                    dev_id =int(data[1])
-                    index = dev_id - 1
-                    RFID = data[2].strip().upper()
-                    gate = int(data[3])
+                if len(data) >= 2: #was 3 and w/o =
+                    dev_id =int(str(data[1-1])[2::]) # was without [2::] and -1
+                    if dev_id in [1,3]:
+                        gate = 1
+                    else:
+                        gate = 0
+                    RFID = data[2-1].strip().upper()[:8] # was without -1
+                    #gate = int(data[3]) #wasn't comment
+                    if session.query(User).filter_by(RFID=RFID).first() is None:
+                        ef_user_rfid.delete(0,tk.END)
+                        ef_user_rfid.insert(0, RFID)
                     if RFID == "TEST" or RFID == "RESET":
                         date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                        
                         # comError[portIndex] = 0
-                    else:
-                        if gate != 1:#1-come,0-leave
+                    else: #wasnt comment
+                        if gate == 0:#1-come,0-leave
                             gate = False
-                            index = dev_id - 1 + 4
                         else:
                             gate = True
+
                         #timers[index] = maxtime   
                         # comError[portIndex] = 0
                         try:
                             #session = Session()
                             usr = session.query(User).filter_by(RFID=RFID).first()
-                            if usr.id==None:
-                                if usr.RFID!=None:
+                            if usr.id is None:
+                                if usr.RFID is not None:
                                     print("Net usera id")
                                 else:
                                     #stdNames[index].config(text="Aniqlanmagan")
+                                    print("Aniqlanmagan")
                                     comPort.write(str.encode("@"+str(dev_id)+"$ERROR&"+str(gate) + '*\n'))
                             else:
                                 print(f'ID={usr.id}, gate={gate}, {session}')
                                 if create_action(usr.id, gate, session):
-                                    comPort.write(str.encode("@"+str(dev_id)+"$OK&"+str(gate) + '*\n'))
+                                    #comPort.write(str.encode("1"+str(dev_id)+"$OK&"+str(gate) + '*\n'))
+                                    
+                                    array1[dev_id-1] = 0
+
+                                    comPort.write(str.encode(str(dev_id) + '*\n'))
                                 else:
                                     print("OTKAZANO")
+                                    array1[dev_id-1] = 0
                                 show_actions(session)
                                # setAttendace()
                                # stdNames[index].config(text=name+"\n"+group_id)
-                          
+                            
                         except Exception as ex:  
                             print(str(ex))
+                            print("Пользователь не найден!")
                            # stdNames[index].config(text="Aniqlanmagan")
                            # stdPhotos[index].config(image=unknownImg)
                            # stdPhotos[index].image = unknownImg   

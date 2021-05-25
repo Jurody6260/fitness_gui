@@ -8,7 +8,7 @@ import threading
 import pandas as pd
 from openpyxl import Workbook
 #us = User(name="Azamat", RFID="12345678", tel="123123", schedule_id=""  
-
+from time import sleep
 import logging
 
 logging.basicConfig()
