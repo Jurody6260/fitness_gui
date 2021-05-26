@@ -5,6 +5,7 @@ import calendar
 import functools
 fp=functools.partial
 lbl_width = 15
+lbl_font = 20
 def drop_create_db():
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
@@ -20,9 +21,9 @@ def show_cl_sch():
         opt_user_sch.current(0)
         opt_user_sch.grid(column=1, row=4)
 def export_to_excelv2(fname, year, month):
-    mon, year = int(month), int(year)
     if fname != '':
         try:
+            mon, year = int(month), int(year)
             writer = pd.ExcelWriter(fname + '.xlsx')
             session.query(Action).filter(Action.action_time)
             num_days = calendar.monthrange(year, mon)[1]
@@ -41,20 +42,20 @@ def export_to_excelv2(fname, year, month):
                 df["name"] = str(session.query(User).filter_by(id=id).first().name)
                 for day in range(1, num_days + 1):
                     def in_out_timing():
-                        def allo():
-                            if filtertimses.first().allowed == True:
-                                return "Allowed"
-                            else:
-                                return "Deny"
-                        filtertimses = session.query(Action).filter(and_(Action.user_id==id, func.DATE(Action.action_time)==f"{year}-{month}-{day}"))
-                        intim = filtertimses.order_by(Action.action_time).first().action_time.strftime("%H:%M:%S") 
-                        outtim = filtertimses.order_by(Action.action_time.desc()).first().action_time.strftime("%H:%M:%S")
-                        if filtertimses.first().is_entry == True and filtertimses.order_by(Action.action_time.desc()).first().is_entry == False:
-                            return intim + ' / ' + outtim
-                        elif filtertimses.first().is_entry == False and filtertimses.order_by(Action.action_time.desc()).first().is_entry == False:
+                        filtertimsesT = session.query(Action).filter(and_(Action.user_id==id, func.DATE(Action.action_time)==f"{year}-{month}-{day}", Action.is_entry==True))
+                        filtertimsesF = session.query(Action).filter(and_(Action.user_id==id, func.DATE(Action.action_time)==f"{year}-{month}-{day}", Action.is_entry==False))
+                        if len(filtertimsesT.all()) >= 1:
+                            intim = filtertimsesT.order_by(Action.action_time).first().action_time.strftime("%H:%M:%S") 
+                            if len(filtertimsesF.all()) >= 1:
+                                outtim = filtertimsesF.order_by(Action.action_time.desc()).first().action_time.strftime("%H:%M:%S")
+                                return intim + ' / ' + outtim
+                            elif len(filtertimsesF.all()) == 0:
+                                return intim + ' / ' + "-"
+                        elif len(filtertimsesT.all())  == 0 and len(filtertimsesF.all()) >= 1:
+                            outtim = filtertimsesF.order_by(Action.action_time.desc()).first().action_time.strftime("%H:%M:%S")
                             return "-" + ' / ' + outtim
-                        elif filtertimses.first().is_entry == True and filtertimses.order_by(Action.action_time.desc()).first().is_entry == True:
-                            return intim + ' / ' + "-"
+                        else:
+                            return "- / -"
                     try:
                         if type(session.query(Action).filter(and_(Action.user_id==id, func.DATE(Action.action_time)==f"{year}-{month}-{day}")).order_by(Action.action_time).first()) != "NoneType" and session.query(Action).filter(and_(Action.user_id==id, func.DATE(Action.action_time)==f"{year}-{month}-{day}")).order_by(Action.action_time).first() is not None:
                             df[str(day)+ ' ' + calendar.month_name[mon]] = in_out_timing()
@@ -63,7 +64,7 @@ def export_to_excelv2(fname, year, month):
                     except Exception as e:
                         print("EX: " + str(e))
                 dfs.append(df)
-                del df
+                del df 
                 with pd.ExcelWriter(fname + '.xlsx') as writer:
                     sr = 1
                     dfs[0].to_excel(writer,sheet_name="Actions", index=False)
@@ -72,49 +73,49 @@ def export_to_excelv2(fname, year, month):
                         sr +=1
         except Exception as e:
             print(str(e))
-def export_to_excel(fname, year, month):
+def export_to_excel_pay(fname, year, month, day):
     if fname != '':
-        year, month = int(year), int(month)   
         try:
-            num_days = calendar.monthrange(year, month)[1]
-            start_date = date(year, month, 1)
-            end_date = date(year, month, num_days)
-            action_results = session.query(Action).filter(
-and_(Action.action_time >= start_date, Action.action_time <= end_date))
-            payment_results = session.query(Payment).filter(
-and_(Payment.action_time >= start_date, Payment.action_time <= end_date))
+            da = f"{year}-{month}-{day}"
+            year, month, day = int(year), int(month), int(day)
+            payment_results = session.query(Payment).filter(func.DATE(Payment.action_time)==da)
             writer = pd.ExcelWriter(fname + '.xlsx')
-            action_table = pd.read_sql_table('action', engine, columns=["action_time", "is_entry", "allowed", "user_id"])
-            payment_table = pd.read_sql_table('payment', engine, columns=["money","action_time", "coach_id", "user_id"])
-            user_table = pd.read_sql_table('user', engine, columns=["id", "name"])
-            df = pd.merge(user_table, action_table, left_on="id", right_on="user_id", how="right")
-            df1 = pd.merge(user_table, payment_table, left_on="id", right_on="user_id", how="right")
-            df2 = pd.read_sql(str(action_results), engine, params=[start_date, end_date], columns=["action_time", "is_entry", "allowed", "user_id"])
-            for i, row in df2.iterrows():
-                df2['action_is_entry'] = df2['action_is_entry'].apply(str)
-                df2['action_is_entry'] = df2['action_is_entry'].astype(str)
-                df2 = df2.applymap(str)
-                enter = "Enter"
-                allow = "Allowed"
-                print(i)
-                print(row)
-                if row["action_is_entry"] == 0:
-                    enter = "Left"
-                if row["action_allowed"] == 0:
-                    allow = "Deny"
-                df2.at[i,"action_user_id"] = session.query(User).filter_by(id=row["action_user_id"]).first().name
-                df2.at[i,'action_is_entry'] = enter
-                df2.at[i,'action_allowed'] = allow
-            df3 = pd.read_sql(str(payment_results), engine, params=[start_date, end_date], columns=["money","action_time", "coach_id", "user_id"])
+            df = pd.DataFrame()
+            # action_table = pd.read_sql_table('action', engine, columns=["action_time", "is_entry", "allowed", "user_id"])
+            # payment_table = pd.read_sql_table('payment', engine, columns=["money","action_time", "coach_id", "user_id"])
+            # user_table = pd.read_sql_table('user', engine, columns=["id", "name"])
+            # df = pd.merge(user_table, action_table, left_on="id", right_on="user_id", how="right")
+            # df1 = pd.merge(user_table, payment_table, left_on="id", right_on="user_id", how="right")
+            # df2 = pd.read_sql(str(action_results), engine, params=[start_date, end_date], columns=["action_time", "is_entry", "allowed", "user_id"])
+            # for i, row in df2.iterrows():
+            #     df2['action_is_entry'] = df2['action_is_entry'].apply(str)
+            #     df2['action_is_entry'] = df2['action_is_entry'].astype(str)
+            #     df2 = df2.applymap(str)
+            #     enter = "Enter"
+            #     allow = "Allowed"
+            #     print(i)
+            #     print(row)
+            #     if row["action_is_entry"] == 0:
+            #         enter = "Left"
+            #     if row["action_allowed"] == 0:
+            #         allow = "Deny"
+            #     df2.at[i,"action_user_id"] = session.query(User).filter_by(id=row["action_user_id"]).first().name
+            #     df2.at[i,'action_is_entry'] = enter
+            #     df2.at[i,'action_allowed'] = allow
+            d = f"{year}, {month}, {day}"
+            df3 = pd.read_sql_query(str(payment_results), engine, params=[da])
             for i, row in df3.iterrows():
                 df3['payment_user_id'] = df3['payment_user_id'].apply(str)
                 df3['payment_user_id'] = df3['payment_user_id'].astype(str)
                 df3 = df3.applymap(str)
                 df3.at[i,"payment_coach_id"] = session.query(Coach).filter_by(id=row["payment_coach_id"]).first().name
                 df3.at[i,"payment_user_id"] = session.query(User).filter_by(id=row["payment_user_id"]).first().name
+                df3.at[i,"payment_action_time"] = df3.at[i,"payment_action_time"].split()[1].split(".")[0]
+                # df3["payment_user_id"] = df3["User's Name"]
+                # df3["payment_coach_id"] = df3["Coach's Name"]
+            df = df3.rename(columns = {'payment_user_id': "User's Name", "payment_action_time": 'Action Time', "payment_coach_id" : "Coach's Name"}, inplace = False)
             with writer:
-                df2.to_excel(writer, sheet_name="Actions", index=False)
-                df3.to_excel(writer, sheet_name="Payments", index=False)
+                df.to_excel(writer, sheet_name="Payments", index=False)
         except Exception as e:
             print("excel export err:" + str(e))
 def _on_mouse_wheel(canv, event):
@@ -259,7 +260,7 @@ def show_actions(session):
 at {i.action_time.strftime('%Y-%m-%d %H:%M:%S')} \
 {inout(i.is_entry)} \
 left: {session.query(User).filter_by(id=i.user_id).first().train_amount} \
-{isallowed(i.allowed)}", width=lbl_width*3+4, borderwidth=0)
+{isallowed(i.allowed)}", width=lbl_width*4, font=(lbl_font), borderwidth=0)
             e.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
             col += 1
             if col % 1 == 0:
@@ -274,7 +275,7 @@ def show_payments():
     row=1
     for i in search_payments():
         try:
-            e = tk.Label(frame_pay_all, width=lbl_width*4-5, text=f"{session.query(User).filter_by(id=i.user_id).first().name} $: {i.money} at {i.action_time.strftime('%Y-%m-%d %H:%M:%S')} coach: {session.query(Coach).filter_by(id=i.coach_id).first().name}", borderwidth=0)
+            e = tk.Label(frame_pay_all, width=lbl_width*4, text=f"{session.query(User).filter_by(id=i.user_id).first().name} $: {i.money} at {i.action_time.strftime('%Y-%m-%d %H:%M:%S')} coach: {session.query(Coach).filter_by(id=i.coach_id).first().name}", font=(lbl_font), borderwidth=0)
             e.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
             col += 1
             if col % 1 == 0:
@@ -293,7 +294,7 @@ def show_schedules():
     row=1
     for i in search_schedule():
         try:
-            e = tk.Label(frame_sched_all, text=f"{i.name}, start: {i.start_time}, end: {i.end_time}, Amount: {i.train_amount}, id: {i.id}", borderwidth=0)
+            e = tk.Label(frame_sched_all, text=f"{i.name}, start: {i.start_time}, end: {i.end_time}, Amount: {i.train_amount}, id: {i.id}", width=lbl_width*4, font=(lbl_font), borderwidth=0)
             e.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
             col += 1
             if col % 1 == 0:
@@ -317,7 +318,7 @@ def show_coaches(): #показать тренеров
     row=1
     for i in search_coach():
         try:
-            e = tk.Label(frame_bottom, width=lbl_width+15, text=f"{i.name} id: {i.id}", borderwidth=0)
+            e = tk.Label(frame_bottom, width=lbl_width+15, text=f"{i.name} id: {i.id}", font=(lbl_font), borderwidth=0)
             e.grid(row=row, column=col,padx=5, pady=5, sticky=tk.NSEW)
             col += 1
             if col % 2 == 0:
@@ -341,17 +342,17 @@ def edit_user():
         name_user = tk.Label(editwin, text="Name", width=lbl_width, borderwidth=0)
         name_user.grid(column=0,row=1)
         
-        entry_field_users = tk.Entry(editwin, bg='white', font=30)
+        entry_field_users = tk.Entry(editwin, bg='white', font=(lbl_font))
         entry_field_users.grid(column=1, row=1)
         entry_field_users.insert(0, session.query(User).filter_by(id=id).first().name)
         rfid_user = tk.Label(editwin, text="RFID", width=lbl_width, borderwidth=0)
         rfid_user.grid(column=0,row=2)
-        ef_user_rfid = tk.Entry(editwin, bg='white', font=30)
+        ef_user_rfid = tk.Entry(editwin, bg='white', font=(lbl_font))
         ef_user_rfid.grid(column=1, row=2)
         ef_user_rfid.insert(0, session.query(User).filter_by(id=id).first().RFID)
         tel_user = tk.Label(editwin, text="Phone Number", width=lbl_width, borderwidth=0)
         tel_user.grid(column=0,row=3)
-        ef_user_tel = tk.Entry(editwin, bg='white', font=30)
+        ef_user_tel = tk.Entry(editwin, bg='white', font=(lbl_font))
         ef_user_tel.grid(column=1, row=3)
         ef_user_tel.insert(0, session.query(User).filter_by(id=id).first().tel)
         sch_user = tk.Label(editwin, text="Schedule ID", width=lbl_width, borderwidth=0)
@@ -361,22 +362,22 @@ def edit_user():
         opt_user_sch.grid(column=1, row=4)
         sd_user = tk.Label(editwin, text="Start Date", width=lbl_width, borderwidth=0)
         sd_user.grid(column=0,row=5)
-        ef_user_sd = tk.Entry(editwin, bg='white', font=30)
+        ef_user_sd = tk.Entry(editwin, bg='white', font=(lbl_font))
         ef_user_sd.grid(column=1, row=5)
         ef_user_sd.insert(0, session.query(User).filter_by(id=id).first().start_date)
         ed_user = tk.Label(editwin, text="End Date", width=lbl_width, borderwidth=0)
         ed_user.grid(column=0,row=6)
-        ef_user_ed = tk.Entry(editwin, bg='white', font=30)
+        ef_user_ed = tk.Entry(editwin, bg='white', font=(lbl_font))
         ef_user_ed.grid(column=1, row=6)
         ef_user_ed.insert(0, session.query(User).filter_by(id=id).first().end_date)
         ta_user = tk.Label(editwin, text="Train Amount", width=lbl_width, borderwidth=0)
         ta_user.grid(column=0,row=7)
-        ef_user_ta = tk.Entry(editwin, bg='white', font=30)
+        ef_user_ta = tk.Entry(editwin, bg='white', font=(lbl_font))
         ef_user_ta.grid(column=1, row=7)
         ef_user_ta.insert(0, session.query(User).filter_by(id=id).first().train_amount)
         lvl_user = tk.Label(editwin, text="Level (def=0)", width=lbl_width, borderwidth=0)
         lvl_user.grid(column=0,row=8)
-        ef_user_lvl = tk.Entry(editwin, bg='white', font=30)
+        ef_user_lvl = tk.Entry(editwin, bg='white', font=(lbl_font))
         ef_user_lvl.grid(column=1, row=8)
         ef_user_lvl.insert(0, session.query(User).filter_by(id=id).first().user_level)
         Button = tk.Button(editwin, text="submit edit", 
@@ -428,7 +429,7 @@ def show_users(): #показать пользователей
     schedule: {session.query(Schedule).filter_by(id=i.schedule_id).first().name}
     start: {i.start_date}\n end: {i.end_date} 
     train amount: {i.train_amount} 
-    register {i.registered_on}""", borderwidth=0)
+    register {i.registered_on}""", borderwidth=0, font=(lbl_font))
             e.grid(row=row, column=col, padx=5, pady=5, sticky=tk.NSEW)
             col += 1
             if col % 3 == 0:
@@ -466,7 +467,7 @@ id: {i.id}\n RFID: {i.RFID}\n phone: {i.tel}
 schedule: {session.query(Schedule).filter_by(id=i.schedule_id).first().name}
 start: {i.start_date}\n end: {i.end_date} 
 train amount: {i.train_amount} 
-register {i.registered_on}""", borderwidth=0)
+register {i.registered_on}""", font=(lbl_font), borderwidth=0)
                     e.grid(row=row, column=col, padx=5, pady=5, sticky=tk.NSEW)
                     col += 1
                     if col % 3 == 0:
@@ -486,7 +487,7 @@ id: {i.id}\n RFID: {i.RFID}\n phone: {i.tel}
 schedule: {session.query(Schedule).filter_by(id=i.schedule_id).first().name}
 start: {i.start_date}\n end: {i.end_date} 
 train amount: {i.train_amount} 
-register {i.registered_on}""", borderwidth=0)
+register {i.registered_on}""", font=(lbl_font), borderwidth=0)
                     e.grid(row=row, column=col, padx=5, pady=5, sticky=tk.NSEW)
                     col += 1
                     if col % 3 == 0:
@@ -502,7 +503,7 @@ register {i.registered_on}""", borderwidth=0)
             dang = tk.Label(searchwin, text="Please choose filter", borderwidth=0)
             dang.grid(row=row, column=col, padx=5, pady=5, sticky=tk.NSEW)
     root = tk.Tk()
-    root.geometry('450x450+350+350')
+    root.geometry('650x450+450+350')
     root.title("Search window")
     root.configure(background="orange")
     searchwin = tk.Frame(root)
@@ -539,7 +540,7 @@ register {i.registered_on}""", borderwidth=0)
     searchwin.mainloop()
 
 win = tk.Tk()
-win.geometry('600x750+150+150')
+win.geometry('650x800+150+150')
 win.title("Main Window") 
 win.configure(background='white')
 running = True
@@ -550,7 +551,7 @@ tab1 = ttk.Frame(tab_parent)
 tab_parent.add(tab1, text="add Coach")
 
 frame_top = tk.Frame(tab1, bg='orange', bd=5)
-frame_top.place(relx=0.15, rely=0.015, relwidth=0.8, relheight=0.2)
+frame_top.place(relx=0.25, rely=0.015, relwidth=0.5, relheight=0.15)
 
 lbl = tk.Label(frame_top, text="ADD COACH", font=("Arial"), borderwidth=0, bg="orange")
 lbl.grid(column=1, row=0)
@@ -567,7 +568,7 @@ tab2 = ttk.Frame(tab_parent)
 tab_parent.add(tab2, text="add User")
 
 frame_users = tk.Frame(tab2, bg='orange', bd=5)
-frame_users.place(relx=0.15, rely=0.015, relwidth=0.8, relheight=0.35)
+frame_users.place(relx=0.25, rely=0.015, relwidth=0.6, relheight=0.35)
 
 lbl = tk.Label(frame_users, bg='orange', text="ADD USER", font=("Arial"), borderwidth=0)
 lbl.grid(column=1, row=0)
@@ -632,7 +633,7 @@ tab_parent.add(tab3, text="add Schedule")
 frame_sched = tk.Frame(tab3, bg='orange', bd=5)
 frame_sched.place(relx=0.15, rely=0.015, relwidth=0.7, relheight=0.2)
 frame_sched_all = tk.Frame(tab3, bg='orange', bd=5)
-frame_sched_all.place(relx=0.15, rely=0.24, relwidth=0.7, relheight=0.75)
+frame_sched_all.place(relx=0.015, rely=0.24, relwidth=0.9, relheight=0.75)
 
 lbl = tk.Label(frame_sched, bg='orange', text="ADD SCHEDULE", font=("Arial"), borderwidth=0)
 lbl.grid(column=1, row=0)
@@ -669,7 +670,7 @@ Button.configure(highlightbackground='#009688')
 tab4 = ttk.Frame(tab_parent)
 tab_parent.add(tab4, text="add Payment")
 frame_pay = tk.Frame(tab4, bg='orange', bd=5)
-frame_pay.place(relx=0.15, rely=0.015, relwidth=0.7, relheight=0.3)
+frame_pay.place(relx=0.20, rely=0.015, relwidth=0.6, relheight=0.25)
 
 lbl = tk.Label(frame_pay, bg='orange', text="ADD PAYMENT", font=("Arial"), borderwidth=0)
 lbl.grid(column=1, row=0)
@@ -700,9 +701,9 @@ tab_parent.add(tab5, text="Actions")
 tab6 = ttk.Frame(tab_parent)
 tab_parent.add(tab6, text="Settings")
 settings_fr = tk.Frame(tab6)
-settings_fr.place(relx=0.15, rely=0.015, relwidth=0.7, relheight=0.3)
+settings_fr.place(relx=0.015, rely=0.015, relwidth=0.9, relheight=0.6)
 
-lbl = tk.Label(settings_fr, text="EXPORT DATA", font=("Arial"), borderwidth=0)
+lbl = tk.Label(settings_fr, text="EXPORT ACTIONS DATA", font=("Arial"), borderwidth=0)
 lbl.grid(column=1, row=0)
 
 name_exc_file = tk.Label(settings_fr, text="FILE NAME", width=lbl_width, borderwidth=0)
@@ -721,26 +722,55 @@ e_f_month = tk.Entry(settings_fr, bg='white', font=30)
 e_f_month.grid(column=1, row=3)
 e_f_month.insert(0, datetime.now().strftime("%m"))
 
-
 imp_btn = tk.Button(settings_fr, text="Export data", command=lambda: [export_to_excelv2(e_f_exc_file.get(),
 e_f_year_lbl.get(), e_f_month.get() )])
-imp_btn.grid(column=1, row=15)
+imp_btn.grid(column=1, row=4)
 imp_btn.config(width=10, padx=5, pady=5, bg="#000000", fg="#FFFFFF", borderwidth=2, relief=tk.RAISED)
 imp_btn.configure(highlightbackground='#006400')
+lbl1 = tk.Label(settings_fr)
+lbl1.grid(column=1, row=5)
+lbl = tk.Label(settings_fr, text="EXPORT PAYMENTS DATA", font=("Arial"), borderwidth=0)
+lbl.grid(column=1, row=6)
 
+name_exc_file_pay = tk.Label(settings_fr, text="FILE NAME", width=lbl_width, borderwidth=0)
+name_exc_file_pay.grid(column=0,row=7)
+e_f_exc_file_pay = tk.Entry(settings_fr, bg='white', font=30)
+e_f_exc_file_pay.grid(column=1, row=7)
 
-drp_lbl = tk.Label(settings_fr, bg="#df4759", text="DROP ALL DATABASE", width=lbl_width + 5, borderwidth=0)
-drp_lbl.grid(column=0,row=998, padx=5, pady=5)
-reload_btn = tk.Button(settings_fr, text="clear all", command=drop_create_db)
-reload_btn.grid(column=0, row=999, padx=5, pady=5)
-reload_btn.config(width=10, bg="#df4759", fg="#FFFFFF", borderwidth=2, relief=tk.RAISED)
-reload_btn.configure(highlightbackground='#006400')
+year_lbl_pay = tk.Label(settings_fr, text="PLACE YEAR", width=lbl_width, borderwidth=0)
+year_lbl_pay.grid(column=0,row=8)
+e_f_year_lbl_pay = tk.Entry(settings_fr, bg='white', font=30)
+e_f_year_lbl_pay.grid(column=1, row=8)
+e_f_year_lbl_pay.insert(0, datetime.now().strftime("%Y"))
+month_lbl_pay = tk.Label(settings_fr, text="MONTH", width=lbl_width, borderwidth=0)
+month_lbl_pay.grid(column=0,row=9)
+e_f_month_pay = tk.Entry(settings_fr, bg='white', font=30)
+e_f_month_pay.grid(column=1, row=9)
+e_f_month_pay.insert(0, datetime.now().strftime("%m"))
+day_lbl_pay = tk.Label(settings_fr, text="DAY", width=lbl_width, borderwidth=0)
+day_lbl_pay.grid(column=0,row=10)
+e_f_day_pay = tk.Entry(settings_fr, bg='white', font=30)
+e_f_day_pay.grid(column=1, row=10)
+e_f_day_pay.insert(0, datetime.now().strftime("%d"))
+
+imp_btn_pay = tk.Button(settings_fr, text="Export data", command=lambda: [export_to_excel_pay(e_f_exc_file_pay.get(),
+e_f_year_lbl_pay.get(), e_f_month_pay.get(), e_f_day_pay.get() )])
+imp_btn_pay.grid(column=1, row=11)
+imp_btn_pay.config(width=10, padx=5, pady=5, bg="#000000", fg="#FFFFFF", borderwidth=2, relief=tk.RAISED)
+imp_btn_pay.configure(highlightbackground='#006400')
+
+drp_lbl_pay = tk.Label(settings_fr, bg="#df4759", text="DROP ALL DATABASE", width=lbl_width + 5, borderwidth=0)
+drp_lbl_pay.grid(column=0,row=998, padx=5, pady=5)
+reload_btn_pay = tk.Button(settings_fr, text="clear all", command=drop_create_db)
+reload_btn_pay.grid(column=0, row=999, padx=5, pady=5)
+reload_btn_pay.config(width=10, bg="#df4759", fg="#FFFFFF", borderwidth=2, relief=tk.RAISED)
+reload_btn_pay.configure(highlightbackground='#006400')
 
 
 #------------scrollbar to action---------------
 #create frame
 canv_fr_act = tk.Frame(tab5)
-canv_fr_act.place(relx=0.15, rely=0.015, relwidth=0.6, relheight=0.9)
+canv_fr_act.place(relx=0.015, rely=0.015, relwidth=0.9, relheight=0.9)
 #create a canvas
 canv_act = tk.Canvas(canv_fr_act, bg="orange")
 canv_act.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
@@ -758,7 +788,7 @@ canv_act.create_window((0,0), window=frame_act, anchor="nw")
 
 
 canv_fr_pay = tk.Frame(tab4)
-canv_fr_pay.place(relx=0.15, rely=0.35, relwidth=0.7, relheight=0.65)
+canv_fr_pay.place(relx=0.015, rely=0.32, relwidth=0.9, relheight=0.65)
 #create a canvas
 canv_pay = tk.Canvas(canv_fr_pay, bg='orange')
 canv_pay.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
@@ -778,7 +808,7 @@ lbl.grid(column=0, row=0)
 
 
 canv_fr_user = tk.Frame(tab2)
-canv_fr_user.place(relx=0.15, rely=0.40, relwidth=0.8, relheight=0.6)
+canv_fr_user.place(relx=0.015, rely=0.40, relwidth=0.9, relheight=0.6)
 #canv_fr_pay.pack(fill=tk.BOTH, expand=1)
 #create a canvas
 canv_user = tk.Canvas(canv_fr_user, bg='orange')
@@ -800,7 +830,7 @@ lbl.grid(column=0, row=0)
 
 
 canv_fr_coach = tk.Frame(tab1)
-canv_fr_coach.place(relx=0.15, rely=0.30, relwidth=0.8, relheight=0.7)
+canv_fr_coach.place(relx=0.030, rely=0.20, relwidth=0.9, relheight=0.7)
 #canv_fr_pay.pack(fill=tk.BOTH, expand=1)
 #create a canvas
 canv_coach = tk.Canvas(canv_fr_coach, bg='orange')
