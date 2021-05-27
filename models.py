@@ -42,7 +42,7 @@ def search_schedule():
     return session.query(Schedule).all()
 
 def search_payments():
-    return session.query(Payment).order_by(Payment.id.desc()).limit(20).all()
+    return session.query(Payment).filter(func.DATE(Action.action_time)==f"{datetime.now().year}-{datetime.now().month}-{datetime.now().day}").order_by(Payment.id.desc()).all()
 
 def search_actions(session):
     return session.query(Action).order_by(Action.id.desc()).limit(20).all()
@@ -64,7 +64,7 @@ def create_schedule(name,start_time,end_time,train_amount):
 
 
 def create_payment(user_id,money,coach_id):
-    if user_id != '' and money != '' and coach_id != '':
+    if user_id != '' and money != '' and coach_id != '' and len(session.query(User).filter_by(id=user_id).all()) != 0 and len(session.query(Coach).filter_by(id=coach_id).all()) != 0:
         pay = Payment(user_id=user_id, money=money, coach_id=coach_id, action_time=datetime.now())
         session.add(pay)
         session.commit()
@@ -135,6 +135,8 @@ class Action(Base):
     is_entry = Column(Boolean, nullable=False)
     allowed = Column(Boolean, nullable=False)
     user = relationship("User", back_populates="action")
+
+
 
     def format(self):
         return {

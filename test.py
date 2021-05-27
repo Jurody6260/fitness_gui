@@ -541,6 +541,7 @@ register {i.registered_on}""", font=(lbl_font), borderwidth=0)
 
 win = tk.Tk()
 win.geometry('650x800+150+150')
+win.iconbitmap('fitnesslogog.ico')
 win.title("Main Window") 
 win.configure(background='white')
 running = True
