@@ -7,6 +7,7 @@ import os
 import threading
 import pandas as pd
 from openpyxl import Workbook
+from json import loads, dumps, load, dump
 #us = User(name="Azamat", RFID="12345678", tel="123123", schedule_id=""  
 from time import sleep
 import logging
@@ -42,7 +43,10 @@ def search_schedule():
     return session.query(Schedule).all()
 
 def search_payments():
-    return session.query(Payment).filter(func.DATE(Action.action_time)==f"{datetime.now().year}-{datetime.now().month}-{datetime.now().day}").order_by(Payment.id.desc()).all()
+    if len(str(datetime.now().month)) == 1:
+        month = str(datetime.now().month)
+        month = '0' + month
+    return session.query(Payment).filter(func.DATE(Action.action_time)==f"{datetime.now().year}-{month}-{datetime.now().day}").order_by(Payment.id.desc()).all()
 
 def search_actions(session):
     return session.query(Action).order_by(Action.id.desc()).limit(20).all()

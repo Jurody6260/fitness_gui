@@ -541,7 +541,6 @@ register {i.registered_on}""", font=(lbl_font), borderwidth=0)
 
 win = tk.Tk()
 win.geometry('650x800+150+150')
-win.iconbitmap('fitnesslogog.ico')
 win.title("Main Window") 
 win.configure(background='white')
 running = True
@@ -877,7 +876,19 @@ show_payments()
 show_cl_sch()
 
 comPorts = []
-serialPorts = ['COM1', 'COM2', 'COM3','COM4', 'COM25','/dev/ttyACM0','/dev/ttyACM1','/dev/ttyACM2','/dev/ttyACM3','/dev/ttyUSB0','/dev/ttyUSB1','/dev/ttyUSB2','/dev/ttyUSB3'] 
+serialPorts = []
+try:
+    with open('ports.json') as json_file:
+        data = load(json_file)
+        serialPorts = data
+except Exception:
+    a = ['COM1', 'COM2', 'COM3','COM4', 'COM25','/dev/ttyACM0','/dev/ttyACM1','/dev/ttyACM2','/dev/ttyACM3','/dev/ttyUSB0','/dev/ttyUSB1','/dev/ttyUSB2','/dev/ttyUSB3']
+    with open('ports.json', 'w') as outfile:
+        dump(a, outfile)
+finally:
+    with open('ports.json') as json_file:
+        data = load(json_file)
+        serialPorts = data
 #]
 for port in serialPorts:
     try:
@@ -894,7 +905,7 @@ def serialThread1():
     global running, comPorts
     meta = MetaData()
     Base = declarative_base()
-    engine = create_engine("sqlite:///fitness.db", echo=True)
+    engine = create_engine("sqlite:///fitness.db")
     Session = sessionmaker(bind=engine)
     session = Session()
     while running:
