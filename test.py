@@ -897,6 +897,7 @@ def serialThread1():
     Session = sessionmaker(bind=engine)
     session = Session()
     while running:
+        sleep(0.1)
         serialThread(comPorts, session)
 def serialThread(comPorts, session):
     #global win, comPorts,timers,stdPhotos,actions,dataforserver,readRFID,open_users_elements
