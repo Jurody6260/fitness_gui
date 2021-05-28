@@ -45,14 +45,14 @@ def export_to_excelv2(fname, year, month):
                         filtertimsesT = session.query(Action).filter(and_(Action.user_id==id, func.DATE(Action.action_time)==f"{year}-{month}-{day}", Action.is_entry==True))
                         filtertimsesF = session.query(Action).filter(and_(Action.user_id==id, func.DATE(Action.action_time)==f"{year}-{month}-{day}", Action.is_entry==False))
                         if len(filtertimsesT.all()) >= 1:
-                            intim = filtertimsesT.order_by(Action.action_time).first().action_time.strftime("%H:%M:%S") 
+                            intim = filtertimsesT.order_by(Action.id).first().action_time.strftime("%H:%M:%S") 
                             if len(filtertimsesF.all()) >= 1:
-                                outtim = filtertimsesF.order_by(Action.action_time.desc()).first().action_time.strftime("%H:%M:%S")
+                                outtim = filtertimsesF.order_by(Action.id.desc()).first().action_time.strftime("%H:%M:%S")
                                 return intim + ' / ' + outtim
                             elif len(filtertimsesF.all()) == 0:
                                 return intim + ' / ' + "-"
                         elif len(filtertimsesT.all())  == 0 and len(filtertimsesF.all()) >= 1:
-                            outtim = filtertimsesF.order_by(Action.action_time.desc()).first().action_time.strftime("%H:%M:%S")
+                            outtim = filtertimsesF.order_by(Action.id.desc()).first().action_time.strftime("%H:%M:%S")
                             return "-" + ' / ' + outtim
                         else:
                             return "- / -"
