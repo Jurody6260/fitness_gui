@@ -1010,3 +1010,4 @@ show_users()
 win.protocol("WM_DELETE_WINDOW", on_closing)
 win.mainloop()
 thread.join()
+#pyinstaller --onefile --icon fitnesslogog.ico test.py -n fitness-GUI

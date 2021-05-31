@@ -1,4 +1,4 @@
-from sqlalchemy import func, and_, delete,create_engine, text, MetaData, Integer, String, Column, ForeignKey, Date, Time, DateTime, Boolean
+from sqlalchemy import func, and_, delete,create_engine, text, MetaData, Integer, String, Column, ForeignKey, Date, Time, DateTime, Boolean, extract
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session, subqueryload, joinedload, relationship
 from datetime import date, time, datetime
@@ -46,7 +46,7 @@ def search_payments():
     if len(str(datetime.now().month)) == 1:
         month = str(datetime.now().month)
         month = '0' + month
-    return session.query(Payment).filter(func.DATE(Action.action_time)==f"{datetime.now().year}-{month}-{datetime.now().day}").order_by(Payment.id.desc()).all()
+    return session.query(Payment).filter(extract('month', Payment.action_time) >= datetime.today().month, extract('year', Payment.action_time) >= datetime.today().year, extract('day', Payment.action_time) >= datetime.today().day).all()
 
 def search_actions(session):
     return session.query(Action).order_by(Action.id.desc()).limit(20).all()
