@@ -13,6 +13,12 @@ def drop_create_db():
     Base.metadata.create_all(bind=engine)
 
 
+def set_train_amount(event):
+    ef_user_ta.delete(0, tk.END)
+    ef_user_ta.insert(0, session.query(Schedule).filter_by(
+        name=opt_user_sch.get()).first().train_amount)
+
+
 def show_cl_sch():
     global opt_user_sch
     try:
@@ -20,6 +26,7 @@ def show_cl_sch():
             _.name) for _ in session.query(Schedule.name)], width=lbl_width+12)
         opt_user_sch.current(0)
         opt_user_sch.grid(column=1, row=4)
+        opt_user_sch.bind("<<ComboboxSelected>>", set_train_amount)
     except:
         opt_user_sch = ttk.Combobox(
             frame_users, value=["please add schedule"], width=lbl_width+12)
@@ -146,7 +153,7 @@ def export_to_excel_pay(fname, year, month, day):
 
 
 def _on_mouse_wheel(canv, event):
-    canv.yview_scroll(-1 * int((event.delta / 120)), "units")
+    canv.yview_scroll(-1 * int((event.delta / 60)), "units")
 
 
 def clear_frame_coaches():
@@ -709,7 +716,7 @@ tel_user.grid(column=0, row=3)
 ef_user_tel = tk.Entry(frame_users, bg='white', font=30)
 ef_user_tel.grid(column=1, row=3)
 
-sch_user = tk.Label(frame_users, text="Schedule ID",
+sch_user = tk.Label(frame_users, text="Schedule",
                     width=lbl_width, borderwidth=0)
 sch_user.grid(column=0, row=4)
 
@@ -966,7 +973,8 @@ canv_fr_user = tk.Frame(tab2)
 canv_fr_user.place(relx=0.015, rely=0.40, relwidth=0.9, relheight=0.6)
 #canv_fr_pay.pack(fill=tk.BOTH, expand=1)
 # create a canvas
-canv_user = tk.Canvas(canv_fr_user, bg='orange')
+canv_user = tk.Canvas(canv_fr_user, scrollregion=(
+    0, 0, 1000, 1000), bg='orange')
 canv_user.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
 # add a scrollbar to canvas
 scroll_user = ttk.Scrollbar(
