@@ -34,11 +34,11 @@ def export_to_excelv2(fname, year, month):
             writer = pd.ExcelWriter(fname + '.xlsx')
             session.query(Action).filter(Action.action_time)
             num_days = calendar.monthrange(year, mon)[1]
-            start_date = date(year, mon, 1)
-            end_date = date(year, mon, num_days)
-            users = session.query(User)
-            action_table = pd.read_sql_table('action', engine, columns=[
-                                             "action_time", "is_entry", "allowed", "user_id"])
+            # start_date = date(year, mon, 1)
+            # end_date = date(year, mon, num_days)
+            # users = session.query(User)
+            # action_table = pd.read_sql_table('action', engine, columns=[
+            #                                  "action_time", "is_entry", "allowed", "user_id"])
             uuids = []
             for id in session.query(Action.user_id).all():
                 if id.user_id not in uuids:
@@ -52,9 +52,9 @@ def export_to_excelv2(fname, year, month):
                 for day in range(1, num_days + 1):
                     def in_out_timing():
                         filtertimsesT = session.query(Action).filter(and_(Action.user_id == id, func.DATE(
-                            Action.action_time) == f"{year}-{month}-{day}", Action.is_entry == True))
+                            Action.action_time) == f"{year}-{month}-{day if len(str(day)) > 1 else '0' + str(day)}", Action.is_entry == True))
                         filtertimsesF = session.query(Action).filter(and_(Action.user_id == id, func.DATE(
-                            Action.action_time) == f"{year}-{month}-{day}", Action.is_entry == False))
+                            Action.action_time) == f"{year}-{month}-{day if len(str(day)) > 1 else '0' + str(day)}", Action.is_entry == False))
                         if len(filtertimsesT.all()) >= 1:
                             intim = filtertimsesT.order_by(
                                 Action.id).first().action_time.strftime("%H:%M:%S")
@@ -71,12 +71,13 @@ def export_to_excelv2(fname, year, month):
                         else:
                             return "- / -"
                     try:
-                        if type(session.query(Action).filter(and_(Action.user_id == id, func.DATE(Action.action_time) == f"{year}-{month}-{day}")).order_by(Action.action_time).first()) != "NoneType" and session.query(Action).filter(and_(Action.user_id == id, func.DATE(Action.action_time) == f"{year}-{month}-{day}")).order_by(Action.action_time).first() is not None:
-                            df[str(day) + ' ' + calendar.month_name[mon]
-                               ] = in_out_timing()
-                        else:
+                        if not session.query(Action).filter(and_(Action.user_id == id, func.DATE(Action.action_time) == f"{year}-{month}-{day if len(str(day)) > 1 else '0' + str(day)}")).order_by(Action.action_time).first():
                             df[str(day) + ' ' +
                                calendar.month_name[mon]] = "- / -"
+                        else:
+                            df[str(day) + ' ' + calendar.month_name[mon]
+                               ] = in_out_timing()
+
                     except Exception as e:
                         print("EX: " + str(e))
                 dfs.append(df)
@@ -1126,8 +1127,6 @@ def serialThread(comPorts, session):
                         else:
                             gate = True
 
-                        #timers[index] = maxtime
-                        # comError[portIndex] = 0
                         try:
                             #session = Session()
                             usr = session.query(User).filter_by(
