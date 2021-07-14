@@ -1,5 +1,6 @@
 import tkinter as tk
-from tkinter import ttk
+
+from tkinter import ttk, messagebox
 from models import *
 import calendar
 import functools
@@ -428,6 +429,10 @@ def show_coaches():  # показать тренеров
     del_coach.grid(row=999, column=0, padx=5, pady=5)
 
 
+def message_box():
+    messagebox.showinfo("Info", 'Изменено')
+
+
 def edit_user():
     def search_and_input(id):
         name_user = tk.Label(editwin, text="Name",
@@ -456,7 +461,13 @@ def edit_user():
         sch_user.grid(column=0, row=4)
         opt_user_sch = ttk.Combobox(editwin, state="readonly", value=[str(
             _.name) for _ in session.query(Schedule.name)], width=lbl_width+12)
+        len(session.query(Schedule).all())
+
         opt_user_sch.current(0)
+        for i in range(len(session.query(Schedule).all())):
+            opt_user_sch.current(i)
+            if opt_user_sch.get() == session.query(Schedule).filter_by(id=session.query(User).filter_by(id=id).first().schedule_id).first().name:
+                break
         opt_user_sch.grid(column=1, row=4)
         sd_user = tk.Label(editwin, text="Start Date",
                            width=lbl_width, borderwidth=0)
@@ -498,13 +509,14 @@ def edit_user():
                                                        id, session),
                                             clear_frame_users(),
                                             show_users(),
+                                            message_box()
                                             ])
         Button.grid(column=1, row=10)
         Button.config(width=10, bg="#000000", fg="#FFFFFF",
                       borderwidth=2, relief=tk.RAISED)
         Button.configure(highlightbackground='#009688')
     editwin = tk.Tk()
-    editwin.geometry('450x450+350+350')
+    editwin.geometry('450x450+550+350')
     editwin.title("Edit User window")
     editwin.configure(background="orange")
     ed_ef = tk.Entry(editwin, bg='white', font=30)
