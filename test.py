@@ -251,7 +251,7 @@ def create_action(user_id, isentr, session):
                     int(session.query(Schedule).filter_by(id=(session.query(User).filter_by(id=user_id).first().schedule_id)).first().end_time.split(":")[0]) - 1 \
                     - int(datetime.now().strftime("%H")) >= 0 and \
                     int(usr_ed) - int(datetime.now().strftime("%Y%m%d")) >= 0:
-                if len(session.query(Action).filter_by(user_id=user_id).all()) > 0:
+                if session.query(Action).filter_by(user_id=user_id).first():
                     if session.query(Action).filter_by(user_id=user_id).order_by(Action.id.desc()).first().action_time.day != date.today().day and session.query(Action).filter_by(user_id=user_id).order_by(Action.id.desc()).first().allowed == True:
                         if session.query(User).filter_by(id=user_id).first().train_amount > 0:
                             amount = session.query(User).filter_by(
@@ -390,7 +390,7 @@ def show_schedules():
     del_entry = tk.Entry(frame_sched_all, bg="white")
     del_entry.grid(row=998, column=0, padx=5, pady=5)
     del_coach = tk.Button(frame_sched_all, text="Delete", bg="#000000", fg="#FFFFFF", command=lambda: [
-                          delete_sch(del_entry.get()), clear_frame_sch(), show_schedules()], width=10)
+                          delete_sch(del_entry.get()), clear_frame_sch(), show_schedules(), show_users()], width=10)
     del_coach.grid(row=999, column=0, padx=5, pady=5)
 
 
@@ -528,7 +528,7 @@ def show_users():  # показать пользователей
                       borderwidth=2, relief=tk.RAISED)
     col = 0
     row = 1
-    for i in session.query(User).all():
+    for i in session.query(User).order_by(User.id.desc()).all():
         try:
             e = tk.Label(frame_users_all, text=f"""{i.name}
     id: {i.id}\n RFID: {i.RFID}\n phone: {i.tel}
@@ -662,7 +662,7 @@ register {i.registered_on}""", font=(lbl_font), borderwidth=0)
 
 
 win = tk.Tk()
-win.geometry('650x800+150+150')
+win.geometry('650x800+150+0')
 win.title("Main Window")
 win.configure(background='white')
 running = True
@@ -1053,7 +1053,7 @@ try:
         data = load(json_file)
         serialPorts = data
 except Exception:
-    a = ['COM1', 'COM2', 'COM3', 'COM4', 'COM25', '/dev/ttyACM0', '/dev/ttyACM1', '/dev/ttyACM2',
+    a = ['COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM25', '/dev/ttyACM0', '/dev/ttyACM1', '/dev/ttyACM2',
          '/dev/ttyACM3', '/dev/ttyUSB0', '/dev/ttyUSB1', '/dev/ttyUSB2', '/dev/ttyUSB3']
     with open('ports.json', 'w') as outfile:
         dump(a, outfile)
