@@ -22,7 +22,7 @@ def set_train_amount(event):
 def show_cl_sch():
     global opt_user_sch
     try:
-        opt_user_sch = ttk.Combobox(frame_users, value=[str(
+        opt_user_sch = ttk.Combobox(frame_users, state="readonly", value=[str(
             _.name) for _ in session.query(Schedule.name)], width=lbl_width+12)
         opt_user_sch.current(0)
         opt_user_sch.grid(column=1, row=4)
@@ -191,8 +191,8 @@ def set_time(text):
     ef_sch_et.insert(0, text)
 
 
-def create_user(name, RFID, tel, schedule_id, start_d, end_d, train_amount, lvl):
-    if name != '' and tel != '' and schedule_id != '' and len(session.query(User).filter_by(RFID=RFID).all()) == 0:
+def create_user(name, RFID, tel, schedule_id, start_d, end_d, train_amount, lvl, session):
+    if name != '' and len(start_d.split('-')) == 3 and len(end_d.split('-')) == 3 and schedule_id != '' and len(session.query(User).filter_by(RFID=RFID).all()) == 0:
         usr = User(
             name=name,
             RFID=RFID,
@@ -209,9 +209,12 @@ def create_user(name, RFID, tel, schedule_id, start_d, end_d, train_amount, lvl)
         session.commit()
         if len(session.query(User).all()) > 0:
             show_users()
+        entry_field_users.delete(0, tk.END)
+        ef_user_rfid.delete(0, tk.END)
+        ef_user_tel.delete(0, tk.END)
 
 
-def ed_user_db(name, RFID, tel, schedule_id, start_d, end_d, train_amount, lvl, id):
+def ed_user_db(name, RFID, tel, schedule_id, start_d, end_d, train_amount, lvl, id, session):
     if name != '' and tel != '' and schedule_id != '':
         usr = session.query(User).filter_by(id=id).first()
         usr.name = name
@@ -266,7 +269,7 @@ def create_action(user_id, isentr, session):
                             session.commit()
                             return True
                         else:
-                            print('You should pay for enter')
+                            print('Закончились посещения')
                             allowed = False
                             act = Action(user_id=user_id, is_entry=isentr,
                                          allowed=allowed, action_time=datetime.now())
@@ -274,12 +277,13 @@ def create_action(user_id, isentr, session):
                             session.commit()
                             return False
                     else:
-                        allowed = True
+                        allowed = False
                         act = Action(user_id=user_id, is_entry=isentr,
                                      allowed=allowed, action_time=datetime.now())
                         session.add(act)
                         session.commit()
-                        return True
+                        print("Попытка войти второй раз за день. Отказано.")
+                        return False
                 else:
                     amount = session.query(User).filter_by(
                         id=user_id).first().train_amount
@@ -293,7 +297,8 @@ def create_action(user_id, isentr, session):
                     session.commit()
                     return True
             else:
-                print("You come not in correct time! Or ended date your allowing")
+                print("Вы пришли не по своему расписанию. расписание:" + session.query(Schedule).filter_by(id=(session.query(
+                    User).filter_by(id=user_id).first().schedule_id)).first().name + ". Или закончился срок действия абонемента")
                 allowed = False
                 act = Action(user_id=user_id, is_entry=isentr,
                              allowed=allowed, action_time=datetime.now())
@@ -449,7 +454,7 @@ def edit_user():
         sch_user = tk.Label(editwin, text="Schedule ID",
                             width=lbl_width, borderwidth=0)
         sch_user.grid(column=0, row=4)
-        opt_user_sch = ttk.Combobox(editwin, value=[str(
+        opt_user_sch = ttk.Combobox(editwin, state="readonly", value=[str(
             _.name) for _ in session.query(Schedule.name)], width=lbl_width+12)
         opt_user_sch.current(0)
         opt_user_sch.grid(column=1, row=4)
@@ -490,7 +495,7 @@ def edit_user():
                                                        ef_user_ed.get(),
                                                        ef_user_ta.get(),
                                                        ef_user_lvl.get(),
-                                                       id=id),
+                                                       id, session),
                                             clear_frame_users(),
                                             show_users(),
                                             ])
@@ -629,7 +634,8 @@ register {i.registered_on}""", font=(lbl_font), borderwidth=0)
     ef_search.insert(0, 'search')
     ef_search.bind("<FocusIn>", lambda args: ef_search.delete('0', 'end'))
     ef_search.grid(column=0, row=0)
-    susers_cb = ttk.Combobox(searchwin, value=["by name", "by phone"])
+    susers_cb = ttk.Combobox(searchwin, state="readonly", value=[
+                             "by name", "by phone"])
     susers_cb.set("Search by...")
     susers_cb.grid(column=1, row=0)
     susers_btn = tk.Button(searchwin, text="search",
@@ -753,7 +759,7 @@ Button = tk.Button(frame_users, text="add",
                                                 ef_user_sd.get(),
                                                 ef_user_ed.get(),
                                                 ef_user_ta.get(),
-                                                ef_user_lvl.get()),
+                                                ef_user_lvl.get(), session),
                                     clear_frame_users(),
                                     show_users()
                                     ])
@@ -1024,7 +1030,7 @@ lbl.grid(column=0, row=0)
 tab_parent.pack(expand=1, fill='both')
 
 try:
-    opt_user_sch = ttk.Combobox(frame_users, value=[str(
+    opt_user_sch = ttk.Combobox(frame_users, state="readonly", value=[str(
         _.id) for _ in session.query(Schedule.id)], width=lbl_width+12)
     opt_user_sch.current(0)
     opt_user_sch.grid(column=1, row=4)
