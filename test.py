@@ -1,6 +1,8 @@
 import tkinter as tk
 
 from tkinter import ttk, messagebox
+
+from sqlalchemy.sql.expression import column
 from models import *
 import calendar
 import functools
@@ -852,8 +854,14 @@ coach_pay.grid(column=0, row=3)
 ef_coachpay = tk.Entry(frame_pay, bg='white', font=30)
 ef_coachpay.grid(column=1, row=3)
 
+lbl = tk.Label(frame_pay, text='Amount with coach',
+               width=lbl_width, borderwidth=0)
+lbl.grid(column=0, row=4)
+ef_amount_coachpay = tk.Entry(frame_pay, bg='white', font=30)
+ef_amount_coachpay.grid(column=1, row=4)
+
 Button = tk.Button(frame_pay, text="add", command=lambda: [create_payment(
-    ef_pay.get(), ef_moneypay.get(), ef_coachpay.get()), show_payments()])
+    ef_pay.get(), ef_moneypay.get(), ef_coachpay.get(), ef_amount_coachpay.get()), show_payments()])
 Button.grid(column=1, row=10)
 Button.config(width=10, bg="#000000", fg="#FFFFFF",
               borderwidth=2, relief=tk.RAISED)
