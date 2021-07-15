@@ -375,7 +375,7 @@ def show_schedules():
     row = 1
     for i in search_schedule():
         try:
-            e = tk.Label(frame_sched_all, text=f"{i.name}, start: {i.start_time}, end: {i.end_time}, Amount: {i.train_amount}, id: {i.id}",
+            e = tk.Label(frame_sched_all, text=f"{i.name} start: {i.start_time} end: {i.end_time} Amount: {i.train_amount} id: {i.id}",
                          width=lbl_width*4, font=(lbl_font), borderwidth=0)
             e.grid(row=row, column=col, padx=5, pady=5, sticky=tk.NSEW)
             col += 1
