@@ -56,9 +56,13 @@ def export_to_excelv2(fname, year, month):
             dfs = []
             uuids.sort()
             for id in uuids:
-                df = pd.DataFrame({'User ID': [id]})
-                df["name"] = str(session.query(
-                    User).filter_by(id=id).first().name)
+                try:
+                    df = pd.DataFrame({'User ID': [id]})
+                    df["name"] = str(session.query(
+                        User).filter_by(id=id).first().name)
+                except Exception as e:
+                    df = pd.DataFrame({'User ID': [id]})
+                    df["name"] = 'deleted'
                 for day in range(1, num_days + 1):
                     def in_out_timing():
                         filtertimsesT = session.query(Action).filter(and_(Action.user_id == id, func.DATE(
@@ -136,15 +140,23 @@ def export_to_excel_pay(fname, year, month, day):
             d = f"{year}, {month}, {day}"
             df3 = pd.read_sql_query(str(payment_results), engine, params=[da])
             for i, row in df3.iterrows():
-                df3['payment_user_id'] = df3['payment_user_id'].apply(str)
-                df3['payment_user_id'] = df3['payment_user_id'].astype(str)
-                df3 = df3.applymap(str)
-                df3.at[i, "payment_coach_id"] = session.query(
-                    Coach).filter_by(id=row["payment_coach_id"]).first().name
-                df3.at[i, "payment_user_id"] = session.query(
-                    User).filter_by(id=row["payment_user_id"]).first().name
-                df3.at[i, "payment_action_time"] = df3.at[i, "payment_action_time"].split()[
-                    1].split(".")[0]
+                try:
+                    df3['payment_user_id'] = df3['payment_user_id'].apply(str)
+                    df3['payment_user_id'] = df3['payment_user_id'].astype(str)
+                    df3 = df3.applymap(str)
+                    df3.at[i, "payment_coach_id"] = session.query(
+                        Coach).filter_by(id=row["payment_coach_id"]).first().name
+                    df3.at[i, "payment_user_id"] = session.query(
+                        User).filter_by(id=row["payment_user_id"]).first().name
+                    df3.at[i, "payment_action_time"] = df3.at[i, "payment_action_time"].split()[
+                        1].split(".")[0]
+                except:
+                    df3['payment_user_id'] = df3['payment_user_id'].apply(str)
+                    df3['payment_user_id'] = df3['payment_user_id'].astype(str)
+                    df3 = df3.applymap(str)
+                    df3.at[i, "payment_coach_id"] = 'deleted'
+                    df3.at[i, "payment_user_id"] = 'deleted'
+                    df3.at[i, "payment_action_time"] = 'deleted'
                 # df3["payment_user_id"] = df3["User's Name"]
                 # df3["payment_coach_id"] = df3["Coach's Name"]
             df = df3.rename(columns={'payment_user_id': "User's Name",
@@ -263,6 +275,8 @@ def create_action(user_id, isentr, session):
                             amount = session.query(User).filter_by(
                                 id=user_id).first().train_amount
                             amount -= 1
+                            session.query(Payment).filter_by(
+                                user_id=user_id).first().amount_coach -= 1
                             session.query(User).filter_by(
                                 id=user_id).first().train_amount = amount
                             allowed = True
@@ -291,6 +305,8 @@ def create_action(user_id, isentr, session):
                     amount = session.query(User).filter_by(
                         id=user_id).first().train_amount
                     amount -= 1
+                    session.query(Payment).filter_by(
+                        user_id=user_id).first().amount_coach -= 1
                     session.query(User).filter_by(
                         id=user_id).first().train_amount = amount
                     allowed = True
@@ -355,7 +371,7 @@ def show_payments():
     for i in search_payments():
         try:
             e = tk.Label(frame_pay_all, width=lbl_width*4,
-                         text=f"{session.query(User).filter_by(id=i.user_id).first().name} $: {i.money} at {i.action_time.strftime('%Y-%m-%d %H:%M:%S')} coach: {session.query(Coach).filter_by(id=i.coach_id).first().name}", font=(lbl_font), borderwidth=0)
+                         text=f"{session.query(User).filter_by(id=i.user_id).first().name} $: {i.money} at {i.action_time.strftime('%Y-%m-%d %H:%M:%S')} coach: {session.query(Coach).filter_by(id=i.coach_id).first().name} amount: {i.amount_coach}", font=(lbl_font), borderwidth=0)
             e.grid(row=row, column=col, padx=5, pady=5, sticky=tk.NSEW)
             col += 1
             if col % 1 == 0:
@@ -553,7 +569,7 @@ def show_users():  # показать пользователей
     id: {i.id}\n RFID: {i.RFID}\n phone: {i.tel}
     schedule: {session.query(Schedule).filter_by(id=i.schedule_id).first().name}
     start: {i.start_date}\n end: {i.end_date} 
-    train amount: {i.train_amount} 
+    train amount: {i.train_amount} {'' if not session.query(Payment).filter_by(user_id=i.id).first() else '(' + str(session.query(Payment).filter_by(user_id=i.id).first().amount_coach) + ")"}
     register {i.registered_on}""", borderwidth=0, font=(lbl_font))
             e.grid(row=row, column=col, padx=5, pady=5, sticky=tk.NSEW)
             col += 1

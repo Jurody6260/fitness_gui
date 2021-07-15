@@ -82,8 +82,6 @@ def create_schedule(name, start_time, end_time, train_amount):
 
 
 def create_payment(user_id, money, coach_id, ef_amount_coachpay):
-    if ef_amount_coachpay == '':
-        ef_amount_coachpay = 0
     if user_id != '' and money != '' and coach_id != '' and len(session.query(User).filter_by(id=user_id).all()) != 0 and len(session.query(Coach).filter_by(id=coach_id).all()) != 0:
         pay = Payment(user_id=user_id, money=money,
                       coach_id=coach_id, action_time=datetime.now(), amount_coach=ef_amount_coachpay)
